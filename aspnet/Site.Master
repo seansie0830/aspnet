@@ -1,0 +1,67 @@
+﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="aspnet.SiteMaster" %>
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head runat="server">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>線上圖書館系統</title>
+    
+    <link href="~/Content/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/Content/Site.css" rel="stylesheet" />
+    
+    <asp:ContentPlaceHolder ID="HeadContent" runat="server" />
+</head>
+<body>
+    <form runat="server">
+        <asp:ScriptManager runat="server">
+            <Scripts>
+                <asp:ScriptReference Name="jquery" /> 
+            </Scripts>
+        </asp:ScriptManager>
+
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark">
+            <div class="container">
+                <a class="navbar-brand" runat="server" href="~/">線上圖書館</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link" runat="server" href="~/Search">書籍查詢</a></li>
+                        
+                        <asp:LoginView runat="server">
+                            <LoggedInTemplate>
+                                <li class="nav-item"><a class="nav-link" runat="server" href="~/Default">我的首頁</a></li>
+                            </LoggedInTemplate>
+                        </asp:LoginView>
+                    </ul>
+                    
+                    <asp:LoginView runat="server">
+                        <AnonymousTemplate>
+                            <ul class="navbar-nav ml-auto">
+                                <li class="nav-item"><a class="nav-link" runat="server" href="~/login">登入</a></li>
+                            </ul>
+                        </AnonymousTemplate>
+                        <LoggedInTemplate>
+                            <ul class="navbar-nav ml-auto">
+                                <li class="nav-item"><asp:LoginStatus runat="server" 
+                                    LogoutAction="Redirect" 
+                                    LogoutPageUrl="~/" 
+                                    LogoutText="登出" 
+                                    CssClass="nav-link" /></li>
+                            </ul>
+                        </LoggedInTemplate>
+                    </asp:LoginView>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container body-content">
+            <asp:ContentPlaceHolder ID="MainContent" runat="server">
+            </asp:ContentPlaceHolder>
+            <hr />
+            <footer>
+                <p>&copy; <%: DateTime.Now.Year %> - 線上圖書館系統 (MVP 版本)</p>
+            </footer>
+        </div>
+    </form>
+</body>
+</html>
