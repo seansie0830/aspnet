@@ -4,25 +4,22 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Data.SQLite;
 using System.Configuration;
-using System.Text; // 用於 StringBuilder
-using System.Web.Security; // 用於 User.Identity.IsAuthenticated
+using System.Text;
+using System.Web.Security;
 
 public partial class Search : Page
 {
-    // ====== ViewState 屬性用於追蹤排序狀態 ======
     private string SortExpression
     {
-        get { return ViewState["SortExpression"] as string ?? "BookID"; } // 預設按 BookID 排序
+        get { return ViewState["SortExpression"] as string ?? "BookID"; }
         set { ViewState["SortExpression"] = value; }
     }
 
     private string SortDirection
     {
-        get { return ViewState["SortDirection"] as string ?? "ASC"; } // 預設升序
+        get { return ViewState["SortDirection"] as string ?? "ASC"; }
         set { ViewState["SortDirection"] = value; }
     }
-
-    // ====== 資料庫連接與頁面載入 ======
 
     private string GetConnectionString()
     {
@@ -33,29 +30,23 @@ public partial class Search : Page
     {
         if (!IsPostBack)
         {
-            // 頁面首次載入時，執行初始查詢
             BindBookData();
         }
     }
 
-    // ====== 處理 GridView 事件 ======
-
-    // 1. 處理分頁
     protected void gvBooks_PageIndexChanging(object sender, GridViewPageEventArgs e)
     {
         gvBooks.PageIndex = e.NewPageIndex;
         BindBookData();
     }
 
-    // 2. 處理排序
     protected void gvBooks_Sorting(object sender, GridViewSortEventArgs e)
     {
-        // 如果點擊的是同一個欄位，則切換排序方向
         if (SortExpression == e.SortExpression)
         {
             SortDirection = (SortDirection == "ASC" ? "DESC" : "ASC");
         }
-        else // 如果點擊的是新欄位，則設定新欄位並預設為升序
+        else
         {
             SortExpression = e.SortExpression;
             SortDirection = "ASC";
@@ -65,7 +56,6 @@ public partial class Search : Page
         BindBookData();
     }
 
-    // 3. 處理搜尋按鈕點擊事件 (用於觸發新的查詢)
     protected void btnSearch_Click(object sender, EventArgs e)
     {
         gvBooks.PageIndex = 0;
@@ -73,18 +63,15 @@ public partial class Search : Page
     }
     protected void btnQuickSearch_Click(object sender, EventArgs e)
     {
-        // 清空進階查詢欄位，確保不影響快速查詢結果
         txtSearchTitle.Text = string.Empty;
         txtSearchAuthor.Text = string.Empty;
         txtSearchISBN.Text = string.Empty;
-        // 保持 chkAvailableOnly 狀態，或者可以選擇重置它
 
         gvBooks.PageIndex = 0;
         BindBookData();
     }
 
 
-    // 4. 控制「借閱」按鈕的顯示 (只有登入者才顯示)
     protected void gvBooks_RowDataBound(object sender, GridViewRowEventArgs e)
     {
         if (e.Row.RowType == DataControlRowType.DataRow)
@@ -93,14 +80,12 @@ public partial class Search : Page
 
             if (btnBorrow != null)
             {
-                // 如果使用者未登入，則隱藏借閱按鈕
                 if (!User.Identity.IsAuthenticated)
                 {
                     btnBorrow.Visible = false;
                 }
                 else
                 {
-                    // (未來借閱邏輯會用到：檢查庫存，如果為 0，則禁用按鈕)
                     DataRowView rowView = (DataRowView)e.Row.DataItem;
                     int availableCopies = Convert.ToInt32(rowView["AvailableCopies"]);
 
@@ -115,7 +100,6 @@ public partial class Search : Page
     }
 
 
-    // ====== 核心方法：執行進階查詢並綁定到 GridView ======
     private void BindBookData()
     {
         DataTable dt = new DataTable();
@@ -130,32 +114,26 @@ public partial class Search : Page
             {
                 string quickKeyword = txtQuickSearch.Text.Trim();
 
-                // 1. 【新增】優先處理 快速查詢 邏輯
                 if (!string.IsNullOrWhiteSpace(quickKeyword))
                 {
                     whereClause.Append(" (Title LIKE @Keyword OR Author LIKE @Keyword OR ISBN LIKE @Keyword) AND ");
-                    // 這裡的 @Keyword 參數會被用於三個欄位的模糊匹配
                     cmd.Parameters.AddWithValue("@Keyword", "%" + quickKeyword + "%");
 
-                    // 備註：在快速查詢模式下，我們通常忽略進階查詢欄位。
                 }
-                else // 2. 處理 進階查詢 邏輯 (只有當快速查詢框為空時才執行)
+                else
                 {
-                    // 檢查並添加 書名 條件
                     if (!string.IsNullOrWhiteSpace(txtSearchTitle.Text))
                     {
                         whereClause.Append(" Title LIKE @TitleKeyword AND ");
                         cmd.Parameters.AddWithValue("@TitleKeyword", "%" + txtSearchTitle.Text.Trim() + "%");
                     }
 
-                    // 檢查並添加 作者 條件
                     if (!string.IsNullOrWhiteSpace(txtSearchAuthor.Text))
                     {
                         whereClause.Append(" Author LIKE @AuthorKeyword AND ");
                         cmd.Parameters.AddWithValue("@AuthorKeyword", "%" + txtSearchAuthor.Text.Trim() + "%");
                     }
 
-                    // 檢查並添加 ISBN 條件 (精確匹配)
                     if (!string.IsNullOrWhiteSpace(txtSearchISBN.Text))
                     {
                         whereClause.Append(" ISBN = @ISBN AND ");
@@ -163,21 +141,17 @@ public partial class Search : Page
                     }
                 }
 
-                // 3. 檢查並添加 庫存 (> 0) 條件 (無論快速或進階，此條件都適用)
                 if (chkAvailableOnly.Checked)
                 {
                     whereClause.Append(" AvailableCopies > 0 AND ");
                 }
 
-                // 4. 組裝最終 SQL 語句
                 if (whereClause.Length > 0)
                 {
-                    // 移除最後一個 " AND " (4個字元)
                     whereClause.Length -= 4;
                     baseSql += " WHERE " + whereClause.ToString();
                 }
 
-                // 5. 加入排序子句
                 baseSql += $" ORDER BY {SortExpression} {SortDirection}";
                 cmd.CommandText = baseSql;
 
@@ -193,10 +167,93 @@ public partial class Search : Page
         lblResultInfo.Text = $"共找到 {dt.Rows.Count} 本書籍，當前排序：{SortExpression} ({SortDirection})。";
     }
 
-    // 5. 【預留】實作借閱按鈕的事件處理 (下一階段重點)
-    // 我們將使用 RowCommand 來處理借閱邏輯
-    // protected void gvBooks_RowCommand(object sender, GridViewCommandEventArgs e)
-    // {
-    //      // 這裡將處理 CommandName == "Borrow" 的邏輯
-    // }
+    protected void gvBooks_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        if (e.CommandName == "Borrow")
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                lblResultInfo.Text = "錯誤：請先登入才能借閱書籍。";
+                return;
+            }
+
+            int bookID;
+            if (!int.TryParse(e.CommandArgument.ToString(), out bookID))
+            {
+                lblResultInfo.Text = "錯誤：書籍ID無效。";
+                return;
+            }
+
+            string username = User.Identity.Name;
+            string connString = GetConnectionString();
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            {
+                conn.Open();
+                SQLiteTransaction transaction = conn.BeginTransaction();
+                try
+                {
+                    // 1. 取得 UserID
+                    int userID;
+                    using (SQLiteCommand cmdUser = new SQLiteCommand("SELECT UserID FROM Users WHERE Username = @Username", conn, transaction))
+                    {
+                        cmdUser.Parameters.AddWithValue("@Username", username);
+                        object result = cmdUser.ExecuteScalar();
+                        if (result == null)
+                        {
+                            transaction.Rollback();
+                            lblResultInfo.Text = "錯誤：找不到使用者帳號。";
+                            return;
+                        }
+                        userID = Convert.ToInt32(result);
+                    }
+
+                    // 2. 檢查庫存 (使用 SELECT FOR UPDATE 概念，在 SQLite 中主要依靠 Transaction)
+                    using (SQLiteCommand cmdCheck = new SQLiteCommand("SELECT AvailableCopies FROM Books WHERE BookID = @BookID", conn, transaction))
+                    {
+                        cmdCheck.Parameters.AddWithValue("@BookID", bookID);
+                        object result = cmdCheck.ExecuteScalar();
+
+                        if (result == null || Convert.ToInt32(result) <= 0)
+                        {
+                            transaction.Rollback();
+                            lblResultInfo.Text = "借閱失敗：該書已無庫存可借閱。";
+                            return;
+                        }
+                    }
+
+                    // 3. 更新 Books (AvailableCopies - 1)
+                    using (SQLiteCommand cmdUpdate = new SQLiteCommand("UPDATE Books SET AvailableCopies = AvailableCopies - 1 WHERE BookID = @BookID", conn, transaction))
+                    {
+                        cmdUpdate.Parameters.AddWithValue("@BookID", bookID);
+                        cmdUpdate.ExecuteNonQuery();
+                    }
+
+                    // 4. 寫入 LendRecords 記錄
+                    DateTime borrowDate = DateTime.Now;
+                    DateTime dueDate = borrowDate.AddDays(14); // 預設借閱 14 天
+
+                    string sqlLend = "INSERT INTO LendRecords (BookID, UserID, BorrowDate, DueDate) VALUES (@BookID, @UserID, @BorrowDate, @DueDate)";
+                    using (SQLiteCommand cmdLend = new SQLiteCommand(sqlLend, conn, transaction))
+                    {
+                        cmdLend.Parameters.AddWithValue("@BookID", bookID);
+                        cmdLend.Parameters.AddWithValue("@UserID", userID);
+                        cmdLend.Parameters.AddWithValue("@BorrowDate", borrowDate.ToString("yyyy-MM-dd HH:mm:ss"));
+                        cmdLend.Parameters.AddWithValue("@DueDate", dueDate.ToString("yyyy-MM-dd"));
+                        cmdLend.ExecuteNonQuery();
+                    }
+
+                    transaction.Commit();
+                    lblResultInfo.Text = $"成功借閱書籍 (BookID: {bookID})，請在 {dueDate.ToString("yyyy-MM-dd")} 前歸還。";
+                    // 重新綁定資料，更新顯示的可借閱數量
+                    BindBookData();
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    lblResultInfo.Text = "借閱處理發生錯誤：" + ex.Message;
+                }
+            }
+        }
+    }
 }

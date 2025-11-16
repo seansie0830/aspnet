@@ -46,14 +46,18 @@
     <asp:Panel ID="pnlRecords" runat="server" CssClass="record-panel">
         
         <asp:Label ID="lblUserInfo" runat="server" Text="歡迎回來，您目前的借閱狀態如下：" 
-                   style="display: block; margin-bottom: 15px; font-weight: bold;"></asp:Label>
+                    style="display: block; margin-bottom: 15px; font-weight: bold;"></asp:Label>
         
+        <asp:Label ID="lblReturnMessage" runat="server" Text="" ForeColor="Green" Style="display: block; margin-bottom: 10px;"></asp:Label>
+
         <asp:GridView 
             ID="gvLendRecords" 
             runat="server" 
             AutoGenerateColumns="False" 
             EmptyDataText="目前沒有任何未歸還的借閱記錄。"
-            OnRowDataBound="gvLendRecords_RowDataBound">
+            DataKeyNames="LendRecordID,BookID"
+            OnRowDataBound="gvLendRecords_RowDataBound"
+            OnRowCommand="gvLendRecords_RowCommand">
             <Columns>
                 <asp:BoundField DataField="Title" HeaderText="書名" />
                 <asp:BoundField DataField="Author" HeaderText="作者" />
@@ -63,6 +67,14 @@
                 <asp:TemplateField HeaderText="狀態">
                     <ItemTemplate>
                         <asp:Label ID="lblStatus" runat="server" Text="正常借閱中"></asp:Label>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:TemplateField HeaderText="操作">
+                    <ItemTemplate>
+                        <asp:Button ID="btnReturnBook" runat="server" Text="還書" 
+                            CommandName="ReturnBook" 
+                            CommandArgument='<%# Container.DataItemIndex %>' 
+                            CssClass="btn btn-sm btn-success" />
                     </ItemTemplate>
                 </asp:TemplateField>
             </Columns>

@@ -16,10 +16,8 @@ namespace aspnet
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            // 檢查使用者是否已登入，未登入則導向登入頁
             if (!User.Identity.IsAuthenticated)
             {
-                // 假設登入頁名為 Login.aspx
                 Response.Redirect("~/Login.aspx");
             }
 
@@ -32,7 +30,6 @@ namespace aspnet
             }
         }
 
-        // 輔助方法：獲取 UserID
         private int GetUserIDByUserName(string userName)
         {
             string connString = GetConnectionString();
@@ -48,13 +45,11 @@ namespace aspnet
             }
         }
 
-        // 核心方法：綁定未歸還的借閱記錄
         private void BindLendRecords(string userName)
         {
             int userId = GetUserIDByUserName(userName);
             if (userId <= 0)
             {
-                // 如果找不到 UserID，則清空表格並顯示錯誤
                 gvLendRecords.DataSource = null;
                 gvLendRecords.DataBind();
                 lblUserInfo.Text += "<br /><span style='color:red;'>錯誤：無法載入使用者資訊。</span>";
@@ -64,9 +59,10 @@ namespace aspnet
             DataTable dt = new DataTable();
             string connString = GetConnectionString();
 
-            // 查詢 SQL：聯合 Books 和 LendRecords 表格
             string sql = @"
                 SELECT 
+                    T1.LendRecordID, 
+                    T1.BookID,
                     T1.BorrowDate, 
                     T1.DueDate, 
                     T2.Title, 
@@ -74,7 +70,7 @@ namespace aspnet
                     T2.ISBN 
                 FROM LendRecords T1 
                 JOIN Books T2 ON T1.BookID = T2.BookID
-                WHERE T1.UserID = @UserID AND T1.ReturnDate IS NULL -- *** 關鍵變更：檢查 ReturnDate 是否為 NULL ***
+                WHERE T1.UserID = @UserID AND T1.ReturnDate IS NULL
                 ORDER BY T1.DueDate ASC";
 
             using (SQLiteConnection conn = new SQLiteConnection(connString))
@@ -90,14 +86,12 @@ namespace aspnet
             gvLendRecords.DataBind();
         }
 
-        // GridView 行資料綁定事件：用於檢查是否逾期
         protected void gvLendRecords_RowDataBound(object sender, GridViewRowEventArgs e)
         {
             if (e.Row.RowType == DataControlRowType.DataRow)
             {
                 DataRowView rowView = (DataRowView)e.Row.DataItem;
 
-                // 確保 DueDate 欄位存在且可以轉換為 DateTime
                 if (rowView["DueDate"] != DBNull.Value)
                 {
                     DateTime dueDate = Convert.ToDateTime(rowView["DueDate"]);
@@ -105,23 +99,90 @@ namespace aspnet
 
                     if (lblStatus != null)
                     {
-                        // 檢查是否逾期
                         if (dueDate < DateTime.Today)
                         {
                             lblStatus.Text = "已逾期！";
-                            lblStatus.CssClass = "overdue"; // 應用紅色樣式
-                            e.Row.BackColor = System.Drawing.Color.LightPink; // 整行設為淡紅色
+                            lblStatus.CssClass = "overdue";
+                            e.Row.BackColor = System.Drawing.Color.LightPink;
                         }
                         else
                         {
-                            // 距離到期日少於 3 天，顯示警告
                             TimeSpan remaining = dueDate - DateTime.Today;
                             if (remaining.TotalDays <= 3)
                             {
                                 lblStatus.Text = $"即將到期 ({remaining.TotalDays} 天)";
-                                lblStatus.CssClass = "overdue"; // 應用紅色樣式
+                                lblStatus.CssClass = "overdue";
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        protected void gvLendRecords_RowCommand(object sender, GridViewCommandEventArgs e)
+        {
+            if (e.CommandName == "ReturnBook")
+            {
+                lblReturnMessage.Text = "";
+                int rowIndex = Convert.ToInt32(e.CommandArgument);
+                int lendRecordID = Convert.ToInt32(gvLendRecords.DataKeys[rowIndex]["LendRecordID"]);
+                int bookID = Convert.ToInt32(gvLendRecords.DataKeys[rowIndex]["BookID"]);
+
+                if (PerformReturnBook(lendRecordID, bookID))
+                {
+                    lblReturnMessage.Text = "書籍歸還成功！";
+                    string userName = User.Identity.Name;
+                    BindLendRecords(userName);
+                }
+                else
+                {
+                    lblReturnMessage.Text = "<span style='color:red;'>書籍歸還失敗，請聯繫管理員。</span>";
+                }
+            }
+        }
+
+        private bool PerformReturnBook(int lendRecordID, int bookID)
+        {
+            string connString = GetConnectionString();
+
+            string updateLendSql = "UPDATE LendRecords SET ReturnDate = @ReturnDate WHERE LendRecordID = @LendRecordID AND ReturnDate IS NULL";
+            string updateBookSql = "UPDATE Books SET AvailableCopies = AvailableCopies + 1 WHERE BookID = @BookID";
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            {
+                conn.Open();
+                using (SQLiteTransaction transaction = conn.BeginTransaction())
+                {
+                    try
+                    {
+                        using (SQLiteCommand cmdLend = new SQLiteCommand(updateLendSql, conn, transaction))
+                        {
+                            cmdLend.Parameters.AddWithValue("@ReturnDate", DateTime.Today.ToString("yyyy-MM-dd"));
+                            cmdLend.Parameters.AddWithValue("@LendRecordID", lendRecordID);
+                            if (cmdLend.ExecuteNonQuery() == 0)
+                            {
+                                transaction.Rollback();
+                                return false;
+                            }
+                        }
+
+                        using (SQLiteCommand cmdBook = new SQLiteCommand(updateBookSql, conn, transaction))
+                        {
+                            cmdBook.Parameters.AddWithValue("@BookID", bookID);
+                            if (cmdBook.ExecuteNonQuery() == 0)
+                            {
+                                transaction.Rollback();
+                                return false;
+                            }
+                        }
+
+                        transaction.Commit();
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        transaction.Rollback();
+                        return false;
                     }
                 }
             }

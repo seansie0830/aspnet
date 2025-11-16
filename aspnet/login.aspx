@@ -88,26 +88,33 @@
         }
 
     </style>
-    <div class="login-container">
-        <h2>使用者登入</h2>
-        
-        <div class="form-group">
-            <label for="<%= txtUsername.ClientID %>">帳號：</label>
-            <asp:TextBox ID="txtUsername" runat="server" Width="100%"></asp:TextBox>
-        </div>
+<div class="login-container">
+    <h2>使用者登入</h2>
 
-        <div class="form-group">
-            <label for="<%= txtPassword.ClientID %>">密碼：</label>
-            <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" Width="100%"></asp:TextBox>
-        </div>
-
-        <div class="form-group">
-            <asp:Button ID="btnLogin" runat="server" Text="登入" OnClick="btnLogin_Click" />
-        </div>
-
-        <p class="message-box">
-            <asp:Label ID="lblMessage" runat="server" ForeColor="Red"></asp:Label>
-        </p>
-
+    <div class="form-group">
+        <label for="<%= txtUsername.ClientID %>">帳號：</label>
+        <asp:TextBox ID="txtUsername" runat="server" Width="100%"></asp:TextBox>
     </div>
+
+    <div class="form-group">
+        <label for="<%= txtPassword.ClientID %>">密碼：</label>
+        <asp:TextBox ID="txtPassword" runat="server" TextMode="Password" Width="100%"></asp:TextBox>
+    </div>
+
+    <div class="form-group">
+        <asp:Button ID="btnLogin" runat="server" Text="登入" OnClick="btnLogin_Click" />
+    </div>
+
+    <div class="login-links">
+        <a href="#" id="linkRegister">註冊</a>
+        
+        <span class="link-separator">|</span>
+        
+        <a href="#" id="linkForgotPassword">忘記密碼?</a>
+    </div>
+    <p class="message-box">
+        <asp:Label ID="lblMessage" runat="server" ForeColor="Red"></asp:Label>
+    </p>
+
+</div>
 </asp:Content>
