@@ -148,6 +148,24 @@ public partial class Search
     protected global::System.Web.UI.WebControls.Label lblResultInfo;
 
     /// <summary>
+    /// lblPageSize control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.Label lblPageSize;
+
+    /// <summary>
+    /// ddlPageSize control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.DropDownList ddlPageSize;
+
+    /// <summary>
     /// gvBooks control.
     /// </summary>
     /// <remarks>

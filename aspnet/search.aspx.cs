@@ -11,14 +11,34 @@ public partial class Search : Page
 {
     private string SortExpression
     {
-        get { return ViewState["SortExpression"] as string ?? "BookID"; }
-        set { ViewState["SortExpression"] = value; }
+        get
+        {
+            return ViewState["SortExpression"] as string ??
+"BookID";
+        }
+        set
+        {
+            ViewState["SortExpression"] = value;
+        }
     }
 
     private string SortDirection
     {
-        get { return ViewState["SortDirection"] as string ?? "ASC"; }
-        set { ViewState["SortDirection"] = value; }
+        get
+        {
+            return ViewState["SortDirection"] as string ??
+"ASC";
+        }
+        set
+        {
+            ViewState["SortDirection"] = value;
+        }
+    }
+
+    private int CurrentPageSize
+    {
+        get { return ViewState["PageSize"] as int? ?? 10; }
+        set { ViewState["PageSize"] = value; }
     }
 
     private string GetConnectionString()
@@ -30,6 +50,28 @@ public partial class Search : Page
     {
         if (!IsPostBack)
         {
+            // 初始化 PageSize 並將選單設定為該值
+            if (ddlPageSize.Items.FindByValue(CurrentPageSize.ToString()) != null)
+            {
+                ddlPageSize.SelectedValue = CurrentPageSize.ToString();
+            }
+            gvBooks.PageSize = CurrentPageSize;
+            BindBookData();
+        }
+        else
+        {
+            // 每次 PostBack 都確保 GridView PageSize 與 ViewState 一致
+            gvBooks.PageSize = CurrentPageSize;
+        }
+    }
+
+    protected void ddlPageSize_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (int.TryParse(ddlPageSize.SelectedValue, out int newPageSize))
+        {
+            CurrentPageSize = newPageSize;
+            gvBooks.PageSize = newPageSize;
+            gvBooks.PageIndex = 0; // 變更 PageSize 後重設頁碼
             BindBookData();
         }
     }
@@ -77,7 +119,6 @@ public partial class Search : Page
         if (e.Row.RowType == DataControlRowType.DataRow)
         {
             Button btnBorrow = (Button)e.Row.FindControl("btnBorrow");
-
             if (btnBorrow != null)
             {
                 if (!User.Identity.IsAuthenticated)
@@ -107,13 +148,11 @@ public partial class Search : Page
 
         StringBuilder whereClause = new StringBuilder();
         string baseSql = "SELECT BookID, Title, Author, ISBN, TotalCopies, AvailableCopies FROM Books";
-
         using (SQLiteConnection conn = new SQLiteConnection(connString))
         {
             using (SQLiteCommand cmd = new SQLiteCommand(conn))
             {
                 string quickKeyword = txtQuickSearch.Text.Trim();
-
                 if (!string.IsNullOrWhiteSpace(quickKeyword))
                 {
                     whereClause.Append(" (Title LIKE @Keyword OR Author LIKE @Keyword OR ISBN LIKE @Keyword) AND ");
@@ -124,6 +163,7 @@ public partial class Search : Page
                 {
                     if (!string.IsNullOrWhiteSpace(txtSearchTitle.Text))
                     {
+
                         whereClause.Append(" Title LIKE @TitleKeyword AND ");
                         cmd.Parameters.AddWithValue("@TitleKeyword", "%" + txtSearchTitle.Text.Trim() + "%");
                     }
@@ -163,7 +203,6 @@ public partial class Search : Page
 
         gvBooks.DataSource = dt;
         gvBooks.DataBind();
-
         lblResultInfo.Text = $"共找到 {dt.Rows.Count} 本書籍，當前排序：{SortExpression} ({SortDirection})。";
     }
 
@@ -211,9 +250,9 @@ public partial class Search : Page
                     // 2. 檢查庫存 (使用 SELECT FOR UPDATE 概念，在 SQLite 中主要依靠 Transaction)
                     using (SQLiteCommand cmdCheck = new SQLiteCommand("SELECT AvailableCopies FROM Books WHERE BookID = @BookID", conn, transaction))
                     {
+
                         cmdCheck.Parameters.AddWithValue("@BookID", bookID);
                         object result = cmdCheck.ExecuteScalar();
-
                         if (result == null || Convert.ToInt32(result) <= 0)
                         {
                             transaction.Rollback();
@@ -224,6 +263,7 @@ public partial class Search : Page
 
                     // 3. 更新 Books (AvailableCopies - 1)
                     using (SQLiteCommand cmdUpdate = new SQLiteCommand("UPDATE Books SET AvailableCopies = AvailableCopies - 1 WHERE BookID = @BookID", conn, transaction))
+
                     {
                         cmdUpdate.Parameters.AddWithValue("@BookID", bookID);
                         cmdUpdate.ExecuteNonQuery();

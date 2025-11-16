@@ -67,7 +67,7 @@ public partial class Login : System.Web.UI.Page // 確保類別名稱與您的�
             if (isAdmin)
             {
                 // 【重點】: 如果是管理員，導向 AdminPage.aspx
-                redirectUrl = ResolveUrl("~/AdminPage.aspx");
+                redirectUrl = ResolveUrl("~/admins/main.aspx");
                 welcomeMessage = "登入成功! 歡迎來到管理員專區";
             }
             else

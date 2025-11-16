@@ -1,4 +1,4 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="myHomePage.aspx.cs" Inherits="aspnet.MyHomepage" MasterPageFile="~/Site.Master" %>
+Ôªø<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="myHomePage.aspx.cs" Inherits="aspnet.MyHomepage" MasterPageFile="~/Site.Master" %>
 
 <asp:Content ID="HeadContent" ContentPlaceHolderID="HeadContent" runat="server">
     <style type="text/css">
@@ -10,7 +10,7 @@
             background-color: #f7f9fc;
         }
 
-        /* ∞≤≥]±z®œ•Œ§F Bootstrap ºÀ¶°°A≥o∏Ã®œ•Œ√˛¶W®”ΩT´OºÀ¶°§¿¬˜ */
+        /* ÂÅáË®≠ÊÇ®‰ΩøÁî®‰∫Ü Bootstrap Ê®£ÂºèÔºåÈÄôË£°‰ΩøÁî®È°ûÂêç‰æÜÁ¢∫‰øùÊ®£ÂºèÂàÜÈõ¢ */
         #<%= gvLendRecords.ClientID %> thead th {
             background-color: #007bff !important;
             color: white !important;
@@ -40,55 +40,55 @@
 </asp:Content>
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
-    <h2><asp:Label ID="lblPageTitle" runat="server" Text="ß⁄™∫≠…æ\∞Oø˝"></asp:Label></h2>
+    <h2><asp:Label ID="lblPageTitle" runat="server" Text="ÊàëÁöÑÂÄüÈñ±Ë®òÈåÑ"></asp:Label></h2>
     <hr />
 
     <div class="row mb-3">
         <div class="col-md-6">
             <div class="input-group">
-                <asp:TextBox ID="txtSearch" runat="server" CssClass="form-control" placeholder="Æ—¶W°Bß@™Ã°BISBN ß÷≥t∑j¥M"></asp:TextBox>
+                <asp:TextBox ID="txtSearch" runat="server" CssClass="form-control" placeholder="Êõ∏Âêç„ÄÅ‰ΩúËÄÖ„ÄÅISBN Âø´ÈÄüÊêúÂ∞ã"></asp:TextBox>
                 <div class="input-group-append">
-                    <asp:Button ID="btnSearch" runat="server" Text="∑j¥M" OnClick="btnSearch_Click" CssClass="btn btn-primary" />
-                    <asp:LinkButton ID="lnkClearSearch" runat="server" Text="≤M∞£" OnClick="lnkClearSearch_Click" CssClass="btn btn-secondary" Visible="False" Style="margin-left: 5px;" />
+                    <asp:Button ID="btnSearch" runat="server" Text="ÊêúÂ∞ã" OnClick="btnSearch_Click" CssClass="btn btn-primary" />
+                    <asp:LinkButton ID="lnkClearSearch" runat="server" Text="Ê∏ÖÈô§" OnClick="lnkClearSearch_Click" CssClass="btn btn-secondary" Visible="False" Style="margin-left: 5px;" />
                 </div>
             </div>
         </div>
         <div class="col-md-6 text-right">
-            <asp:LinkButton ID="lnkToggleAdvanced" runat="server" Text="∂i∂•∑j¥M" OnClick="lnkToggleAdvanced_Click" />
+            <asp:LinkButton ID="lnkToggleAdvanced" runat="server" Text="ÈÄ≤ÈöéÊêúÂ∞ã" OnClick="lnkToggleAdvanced_Click" />
         </div>
     </div>
 
     <asp:Panel ID="pnlAdvancedSearch" runat="server" Visible="False" CssClass="record-panel" Style="margin-bottom: 20px;">
-        <h4>∂i∂•∑j¥M</h4>
+        <h4>ÈÄ≤ÈöéÊêúÂ∞ã</h4>
         <div class="form-row">
             <div class="form-group col-md-3">
-                <asp:Label ID="Label1" runat="server" Text="Æ—¶W°G"></asp:Label>
+                <asp:Label ID="Label1" runat="server" Text="Êõ∏ÂêçÔºö"></asp:Label>
                 <asp:TextBox ID="txtSearchTitle" runat="server" CssClass="form-control"></asp:TextBox>
             </div>
             <div class="form-group col-md-3">
-                <asp:Label ID="Label2" runat="server" Text="ß@™Ã°G"></asp:Label>
+                <asp:Label ID="Label2" runat="server" Text="‰ΩúËÄÖÔºö"></asp:Label>
                 <asp:TextBox ID="txtSearchAuthor" runat="server" CssClass="form-control"></asp:TextBox>
             </div>
             <div class="form-group col-md-3">
-                <asp:Label ID="Label3" runat="server" Text="ISBN°G"></asp:Label>
+                <asp:Label ID="Label3" runat="server" Text="ISBNÔºö"></asp:Label>
                 <asp:TextBox ID="txtSearchISBN" runat="server" CssClass="form-control"></asp:TextBox>
             </div>
             <div class="form-group col-md-3">
-                <asp:Label ID="Label4" runat="server" Text="™¨∫A°G"></asp:Label>
+                <asp:Label ID="Label4" runat="server" Text="ÁãÄÊÖãÔºö"></asp:Label>
                 <asp:DropDownList ID="ddlStatusFilter" runat="server" CssClass="form-control">
-                    <asp:ListItem Text="•˛≥°" Value="All"></asp:ListItem>
-                    <asp:ListItem Text="§wπO¥¡" Value="Overdue"></asp:ListItem>
-                    <asp:ListItem Text="ßY±N®Ï¥¡" Value="NearDue"></asp:ListItem>
-                    <asp:ListItem Text="•ø±`≠…æ\§§" Value="Normal"></asp:ListItem>
+                    <asp:ListItem Text="ÂÖ®ÈÉ®" Value="All"></asp:ListItem>
+                    <asp:ListItem Text="Â∑≤ÈÄæÊúü" Value="Overdue"></asp:ListItem>
+                    <asp:ListItem Text="Âç≥Â∞áÂà∞Êúü" Value="NearDue"></asp:ListItem>
+                    <asp:ListItem Text="Ê≠£Â∏∏ÂÄüÈñ±‰∏≠" Value="Normal"></asp:ListItem>
                 </asp:DropDownList>
             </div>
         </div>
-        <asp:Button ID="btnAdvancedSearch" runat="server" Text="∂i∂•∑j¥M" OnClick="btnAdvancedSearch_Click" CssClass="btn btn-info mr-2" />
+        <asp:Button ID="btnAdvancedSearch" runat="server" Text="ÈÄ≤ÈöéÊêúÂ∞ã" OnClick="btnAdvancedSearch_Click" CssClass="btn btn-info mr-2" />
     </asp:Panel>
 
     <asp:Panel ID="pnlRecords" runat="server" CssClass="record-panel">
         
-        <asp:Label ID="lblUserInfo" runat="server" Text="•Œ§·∏Í∞T°G±z•ÿ´e¶≥ N µß≠…æ\∞Oø˝•º¬k¡Ÿ" 
+        <asp:Label ID="lblUserInfo" runat="server" Text="Áî®Êà∂Ë≥áË®äÔºöÊÇ®ÁõÆÂâçÊúâ N Á≠ÜÂÄüÈñ±Ë®òÈåÑÊú™Ê≠∏ÈÇÑ" 
                     style="display: block; margin-bottom: 15px; font-weight: bold;"></asp:Label>
         
         <asp:GridView 
@@ -96,7 +96,7 @@
             DataKeyNames="LendRecordID, BookID"
             runat="server" 
             AutoGenerateColumns="False" 
-            EmptyDataText="•ÿ´e®S¶≥•Ù¶Û•º¬k¡Ÿ™∫≠…æ\∞Oø˝°C"
+            EmptyDataText="ÁõÆÂâçÊ≤íÊúâ‰ªª‰ΩïÊú™Ê≠∏ÈÇÑÁöÑÂÄüÈñ±Ë®òÈåÑ„ÄÇ"
             AllowSorting="True" 
             OnSorting="gvLendRecords_Sorting"
             AllowPaging="True"
@@ -105,19 +105,19 @@
             OnRowDataBound="gvLendRecords_RowDataBound"
             OnRowCommand="gvLendRecords_RowCommand">
             <Columns>
-                <asp:BoundField DataField="Title" HeaderText="Æ—¶W" SortExpression="Title" />
-                <asp:BoundField DataField="Author" HeaderText="ß@™Ã" SortExpression="Author" />
+                <asp:BoundField DataField="Title" HeaderText="Êõ∏Âêç" SortExpression="Title" />
+                <asp:BoundField DataField="Author" HeaderText="‰ΩúËÄÖ" SortExpression="Author" />
                 <asp:BoundField DataField="ISBN" HeaderText="ISBN" SortExpression="ISBN" />
-                <asp:BoundField DataField="BorrowDate" HeaderText="≠…æ\§È¥¡" DataFormatString="{0:yyyy/MM/dd}" SortExpression="BorrowDate" />
-                <asp:BoundField DataField="DueDate" HeaderText="¿≥¡Ÿ§È¥¡" DataFormatString="{0:yyyy/MM/dd}" SortExpression="DueDate" />
-                <asp:TemplateField HeaderText="™¨∫A" SortExpression="Status">
+                <asp:BoundField DataField="BorrowDate" HeaderText="ÂÄüÈñ±Êó•Êúü" DataFormatString="{0:yyyy/MM/dd}" SortExpression="BorrowDate" />
+                <asp:BoundField DataField="DueDate" HeaderText="ÊáâÈÇÑÊó•Êúü" DataFormatString="{0:yyyy/MM/dd}" SortExpression="DueDate" />
+                <asp:TemplateField HeaderText="ÁãÄÊÖã" SortExpression="Status">
                     <ItemTemplate>
-                        <asp:Label ID="lblStatus" runat="server" Text="•ø±`≠…æ\§§"></asp:Label>
+                        <asp:Label ID="lblStatus" runat="server" Text="Ê≠£Â∏∏ÂÄüÈñ±‰∏≠"></asp:Label>
                     </ItemTemplate>
                 </asp:TemplateField>
-                <asp:TemplateField HeaderText="æﬁß@">
+                <asp:TemplateField HeaderText="Êìç‰Ωú">
                     <ItemTemplate>
-                        <asp:LinkButton ID="btnReturn" runat="server" Text="¬k¡Ÿ" CommandName="ReturnBook" CommandArgument='<%# Eval("LendRecordID") + ";" + Eval("BookID") %>' CssClass="btn btn-primary btn-sm" OnClientClick="return confirm('ΩT©w≠n¬k¡Ÿ≥o•ªÆ—∂‹°H');" />
+                        <asp:LinkButton ID="btnReturn" runat="server" Text="Ê≠∏ÈÇÑ" CommandName="ReturnBook" CommandArgument='<%# Eval("LendRecordID") + ";" + Eval("BookID") %>' CssClass="btn btn-primary btn-sm" OnClientClick="return confirm('Á¢∫ÂÆöË¶ÅÊ≠∏ÈÇÑÈÄôÊú¨Êõ∏ÂóéÔºü');" />
                     </ItemTemplate>
                 </asp:TemplateField>
             </Columns>
@@ -132,6 +132,6 @@
     </asp:Panel>
 
     <div style="margin-top: 20px;">
-        <asp:LinkButton ID="lnkShowHistory" runat="server" Text="¨d¨›§w¬k¡Ÿ∞Oø˝" Visible="False" />
+        <asp:LinkButton ID="lnkShowHistory" runat="server" Text="Êü•ÁúãÂ∑≤Ê≠∏ÈÇÑË®òÈåÑ" Visible="False" />
     </div>
 </asp:Content>

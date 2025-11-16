@@ -8,13 +8,11 @@ using System.Web.Security;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
-
 namespace aspnet
 {
     public partial class AdminPage : Page
     {
         private const string ConnectionStringName = "LibraryDBConnection";
-
         private string GetConnectionString()
         {
             return ConfigurationManager.ConnectionStrings[ConnectionStringName].ConnectionString;
@@ -42,6 +40,9 @@ namespace aspnet
             }
             else
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: PostBack triggered. Table selected: {ddlTables.SelectedValue}");
+#endif
                 if (Session["IsInserting"] != null && pnlInsertForm.Visible)
                 {
                     GenerateInsertForm(ddlTables.SelectedValue);
@@ -52,10 +53,8 @@ namespace aspnet
         private bool IsUserAdmin(string username)
         {
             if (string.IsNullOrEmpty(username)) return false;
-
             string connString = GetConnectionString();
             string sql = "SELECT IsAdmin FROM Users WHERE Username = @Username";
-
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
             {
@@ -71,6 +70,9 @@ namespace aspnet
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: 管理員檢查錯誤: {ex.Message}");
+#endif
                     System.Diagnostics.Debug.WriteLine($"管理員檢查錯誤: {ex.Message}");
                 }
             }
@@ -80,10 +82,8 @@ namespace aspnet
         private object GetCurrentUserID(string username)
         {
             if (string.IsNullOrEmpty(username)) return null;
-
             string connString = GetConnectionString();
             string sql = "SELECT UserID FROM Users WHERE Username = @Username";
-
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
             {
@@ -95,6 +95,9 @@ namespace aspnet
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: 獲取 UserID 錯誤: {ex.Message}");
+#endif
                     System.Diagnostics.Debug.WriteLine($"獲取 UserID 錯誤: {ex.Message}");
                     return null;
                 }
@@ -118,7 +121,6 @@ namespace aspnet
         private void BindAdminData(string tableName)
         {
             if (string.IsNullOrEmpty(tableName)) return;
-
             string connString = GetConnectionString();
             if (!new[] { "Users", "Books", "LendRecords", "Categories", "CategoryRecords" }.Contains(tableName))
             {
@@ -131,12 +133,15 @@ namespace aspnet
             {
                 selectQuery = @"SELECT 
                                 b.BookID, 
-                                b.Title AS BookTitle,
+                                b.Title 
+                                AS BookTitle,
                                 GROUP_CONCAT(c.CategoryName, ', ') AS CategoriesList
                                 FROM Books b
+                             
                                 LEFT JOIN CategoryRecords bcr ON b.BookID = bcr.BookID
                                 LEFT JOIN Categories c ON bcr.CategoryID = c.CategoryID
                                 GROUP BY b.BookID, b.Title
+                
                                 ORDER BY b.BookID";
             }
             else
@@ -149,30 +154,26 @@ namespace aspnet
                 using (SQLiteConnection conn = new SQLiteConnection(connString))
                 using (SQLiteCommand cmd = new SQLiteCommand(selectQuery, conn))
                 {
+
                     conn.Open();
                     SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
 
                     SetDataKeyNames(tableName);
-
                     if (tableName == "Categories")
                     {
                         gvAdminData.Columns.Clear();
                         BoundField idField = new BoundField { DataField = "CategoryID", HeaderText = "CategoryID", ReadOnly = true };
                         gvAdminData.Columns.Add(idField);
-
                         BoundField nameField = new BoundField { DataField = "CategoryName", HeaderText = "CategoryName" };
                         gvAdminData.Columns.Add(nameField);
-
                         TemplateField colorField = new TemplateField { HeaderText = "colorHex" };
                         colorField.ItemTemplate = new colorHexItemTemplate();
                         colorField.EditItemTemplate = new colorHexEditItemTemplate();
                         gvAdminData.Columns.Add(colorField);
-
                         CommandField editField = new CommandField { ShowEditButton = true, EditText = "編輯", UpdateText = "更新", CancelText = "取消" };
                         gvAdminData.Columns.Add(editField);
-
                         CommandField deleteField = new CommandField { ShowDeleteButton = true, DeleteText = "刪除" };
                         gvAdminData.Columns.Add(deleteField);
 
@@ -198,6 +199,9 @@ namespace aspnet
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 資料綁定錯誤 ({tableName}): {ex.Message}");
+#endif
                 System.Diagnostics.Debug.WriteLine($"資料綁定錯誤 ({tableName}): {ex.Message}");
                 ShowMessage($"載入資料時發生錯誤 ({tableName})：{ex.Message}", "error");
             }
@@ -208,11 +212,17 @@ namespace aspnet
         {
             switch (tableName)
             {
-                case "Users": gvAdminData.DataKeyNames = new string[] { "UserID" }; break;
+                case "Users":
+                    gvAdminData.DataKeyNames = new string[] { "UserID" };
+                    break;
                 case "Books": gvAdminData.DataKeyNames = new string[] { "BookID" }; break;
-                case "LendRecords": gvAdminData.DataKeyNames = new string[] { "LendRecordID" }; break;
+                case "LendRecords":
+                    gvAdminData.DataKeyNames = new string[] { "LendRecordID" };
+                    break;
                 case "Categories": gvAdminData.DataKeyNames = new string[] { "CategoryID" }; break;
-                case "CategoryRecords": gvAdminData.DataKeyNames = new string[] { "BookID" }; break;
+                case "CategoryRecords":
+                    gvAdminData.DataKeyNames = new string[] { "BookID" };
+                    break;
                 default: gvAdminData.DataKeyNames = new string[] { "DummyKey" }; break;
             }
         }
@@ -269,7 +279,6 @@ namespace aspnet
             if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) && keyName.Equals("UserID", StringComparison.OrdinalIgnoreCase))
             {
                 object currentUserIdObj = GetCurrentUserID(User.Identity.Name);
-
                 if (currentUserIdObj != null && keyValue.ToString() == currentUserIdObj.ToString())
                 {
                     ShowMessage("安全警告：您不能在登入狀態下刪除自己的帳號！", "error");
@@ -291,7 +300,6 @@ namespace aspnet
             }
 
             string connString = GetConnectionString();
-
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(deleteSql, conn))
             {
@@ -303,6 +311,9 @@ namespace aspnet
 
                     if (rowsAffected > 0)
                     {
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: 成功刪除記錄。表: {tableName}, ID: {keyValue}");
+#endif
                         ShowMessage($"成功刪除 {tableName} 表格中的一筆記錄 (ID: {keyValue})。", "success");
                     }
                     else
@@ -312,6 +323,9 @@ namespace aspnet
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: 刪除錯誤: {ex.Message}");
+#endif
                     ShowMessage($"刪除錯誤：{ex.Message}", "error");
                 }
             }
@@ -348,11 +362,12 @@ namespace aspnet
             string connString = GetConnectionString();
             StringBuilder setClauses = new StringBuilder();
             List<SQLiteParameter> parameters = new List<SQLiteParameter>();
-
             try
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: RowUpdating for Table: {tableName}, Key: {keyValue}");
+#endif
                 DataTable currentData = GetTableSchema(tableName);
-
                 if (currentData == null)
                 {
                     ShowMessage("更新失敗：無法獲取資料表結構。", "error");
@@ -363,7 +378,11 @@ namespace aspnet
                 if (tableName == "Categories")
                 {
                     string categoryName = (gvAdminData.Rows[e.RowIndex].Cells[1].Controls[0] as TextBox)?.Text.Trim();
-                    string colorHex = (gvAdminData.Rows[e.RowIndex].Cells[2].FindControl("txtcolorHexEdit") as TextBox)?.Text.Trim();
+
+                    // 使用遞迴尋找控制項，確保在 TemplateField 中也能找到
+                    Control foundControl = FindControlRecursive(gvAdminData.Rows[e.RowIndex].Cells[2], "txtcolorHexEdit");
+                    TextBox colorTextBox = foundControl as TextBox;
+                    string colorHex = colorTextBox?.Text.Trim();
 
                     if (!string.IsNullOrEmpty(categoryName))
                     {
@@ -376,15 +395,17 @@ namespace aspnet
                         setClauses.Append("colorHex = @colorHex, ");
                         parameters.Add(new SQLiteParameter("@colorHex", colorHex));
                     }
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: CategoryName retrieved: {categoryName}");
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: colorHex retrieved (RECURSIVE-FIXED): {colorHex}");
+#endif
                 }
                 else
                 {
                     string[] columnNames = currentData.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
-
                     for (int i = 0; i < gvAdminData.Columns.Count; i++)
                     {
                         if (i == 0) continue;
-
                         DataControlFieldCell cell = gvAdminData.Rows[e.RowIndex].Cells[i] as DataControlFieldCell;
                         if (cell != null && cell.Controls.Count > 0)
                         {
@@ -392,9 +413,9 @@ namespace aspnet
                             if (txt != null)
                             {
                                 if ((i - 1) < columnNames.Length)
+
                                 {
                                     string columnName = columnNames[i - 1];
-
                                     if (columnName.Equals(keyName, StringComparison.OrdinalIgnoreCase)) continue;
 
                                     string paramName = $"@{columnName}";
@@ -406,6 +427,7 @@ namespace aspnet
                     }
                 }
 
+
                 if (setClauses.Length == 0)
                 {
                     ShowMessage("更新失敗：沒有可更新的欄位。", "error");
@@ -416,7 +438,14 @@ namespace aspnet
 
                 string updateSet = setClauses.ToString().TrimEnd(',', ' ');
                 string updateSql = $"UPDATE {tableName} SET {updateSet} WHERE {keyName} = @Key";
-
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: Update SQL: {updateSql}");
+                System.Diagnostics.Debug.WriteLine($"DEBUG: Parameters Count: {parameters.Count}");
+                foreach (var p in parameters)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: Param {p.ParameterName}: {p.Value}");
+                }
+#endif
                 using (SQLiteConnection conn = new SQLiteConnection(connString))
                 using (SQLiteCommand cmd = new SQLiteCommand(updateSql, conn))
                 {
@@ -438,11 +467,34 @@ namespace aspnet
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 更新錯誤: {ex.Message}");
+#endif
                 ShowMessage($"更新錯誤：{ex.Message}", "error");
             }
 
             gvAdminData.EditIndex = -1;
             BindAdminData(tableName);
+        }
+
+        // 遞迴尋找控制項的 Helper 函式
+        private Control FindControlRecursive(Control root, string id)
+        {
+            if (root.ID == id)
+            {
+                return root;
+            }
+
+            foreach (Control c in root.Controls)
+            {
+                Control found = FindControlRecursive(c, id);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         protected void gvAdminData_RowDataBound(object sender, GridViewRowEventArgs e)
@@ -481,9 +533,12 @@ namespace aspnet
             if (string.IsNullOrEmpty(hex) || !hex.StartsWith("#") || hex.Length < 4) return false;
             try
             {
-                string rHex = hex.Length == 4 ? hex.Substring(1, 1) + hex.Substring(1, 1) : hex.Substring(1, 2);
-                string gHex = hex.Length == 4 ? hex.Substring(2, 1) + hex.Substring(2, 1) : hex.Substring(3, 2);
-                string bHex = hex.Length == 4 ? hex.Substring(3, 1) + hex.Substring(3, 1) : hex.Substring(5, 2);
+                string rHex = hex.Length == 4 ?
+                    hex.Substring(1, 1) + hex.Substring(1, 1) : hex.Substring(1, 2);
+                string gHex = hex.Length == 4 ?
+                    hex.Substring(2, 1) + hex.Substring(2, 1) : hex.Substring(3, 2);
+                string bHex = hex.Length == 4 ?
+                    hex.Substring(3, 1) + hex.Substring(3, 1) : hex.Substring(5, 2);
 
                 int r = int.Parse(rHex, System.Globalization.NumberStyles.HexNumber);
                 int g = int.Parse(gHex, System.Globalization.NumberStyles.HexNumber);
@@ -521,18 +576,15 @@ namespace aspnet
         private void GenerateInsertForm(string tableName)
         {
             phInsertFormControls.Controls.Clear();
-
             DataTable dtSchema = GetTableSchema(tableName);
             if (dtSchema == null) return;
             string primaryKeyName = GetPrimaryKeyName(tableName);
-
             Table formTable = new Table { CssClass = "insert-form-table" };
 
             TableHeaderRow headerRow = new TableHeaderRow();
             TableHeaderCell headerCell = new TableHeaderCell { Text = $"新增至表格：**{ddlTables.SelectedItem.Text}**", ColumnSpan = 2, CssClass = "insert-form-header" };
             headerRow.Cells.Add(headerCell);
             formTable.Rows.Add(headerRow);
-
             if (tableName == "CategoryRecords")
             {
                 AddBookCategoryRecordFormControls(formTable);
@@ -542,6 +594,7 @@ namespace aspnet
                 foreach (DataColumn column in dtSchema.Columns)
                 {
                     if (column.ColumnName.Equals(primaryKeyName, StringComparison.OrdinalIgnoreCase))
+
                     {
                         continue;
                     }
@@ -551,7 +604,6 @@ namespace aspnet
                     Label lbl = new Label { Text = column.ColumnName + ":" };
                     labelCell.Controls.Add(lbl);
                     row.Cells.Add(labelCell);
-
                     TableCell inputCell = new TableCell();
 
                     if (tableName == "Categories" && column.ColumnName.Equals("colorHex", StringComparison.OrdinalIgnoreCase))
@@ -570,7 +622,6 @@ namespace aspnet
                         txtInsert.ID = "txtInsert_" + column.ColumnName;
                         txtInsert.CssClass = "input-insert-form";
                         txtInsert.Width = Unit.Percentage(90);
-
                         if (column.ColumnName.Contains("Date"))
                         {
                             txtInsert.ToolTip = "格式: YYYY-MM-DD (例如: 2024-01-01)";
@@ -614,13 +665,13 @@ namespace aspnet
 
             Panel categoryPanel = new Panel();
             categoryPanel.CssClass = "category-selector-container";
-
             ListBox lbCategory = new ListBox
             {
                 ID = "lbInsert_CategoryID",
                 SelectionMode = ListSelectionMode.Multiple,
                 Rows = 5,
                 CssClass = "input-insert-form category-multiselect"
+
             };
             BindCategoriesListBox(lbCategory);
 
@@ -646,7 +697,6 @@ namespace aspnet
             string sql = "SELECT BookID, Title FROM Books ORDER BY Title";
             ddl.Items.Clear();
             ddl.Items.Add(new ListItem("-- 選擇書籍 --", ""));
-
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
             {
@@ -657,12 +707,16 @@ namespace aspnet
                     {
                         while (dr.Read())
                         {
+
                             ddl.Items.Add(new ListItem(dr["Title"].ToString(), dr["BookID"].ToString()));
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: 書籍載入錯誤: {ex.Message}");
+#endif
                     System.Diagnostics.Debug.WriteLine($"書籍載入錯誤: {ex.Message}");
                 }
             }
@@ -673,7 +727,6 @@ namespace aspnet
             string connString = GetConnectionString();
             string sql = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName";
             lb.Items.Clear();
-
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
             {
@@ -684,12 +737,16 @@ namespace aspnet
                     {
                         while (dr.Read())
                         {
+
                             lb.Items.Add(new ListItem(dr["CategoryName"].ToString(), dr["CategoryID"].ToString()));
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: 類別載入錯誤: {ex.Message}");
+#endif
                     System.Diagnostics.Debug.WriteLine($"類別載入錯誤: {ex.Message}");
                 }
             }
@@ -714,23 +771,18 @@ namespace aspnet
             }
 
             string primaryKeyName = GetPrimaryKeyName(tableName);
-
             StringBuilder columnNames = new StringBuilder();
             StringBuilder parameterNames = new StringBuilder();
             List<SQLiteParameter> parameters = new List<SQLiteParameter>();
-
             foreach (DataColumn column in dtSchema.Columns)
             {
                 if (column.ColumnName.Equals(primaryKeyName, StringComparison.OrdinalIgnoreCase)) continue;
-
                 string expectedControlID = "txtInsert_" + column.ColumnName;
 
                 TextBox txtInsert = (TextBox)phInsertFormControls.FindControl(expectedControlID);
-
                 if (txtInsert != null)
                 {
                     string paramName = $"@{column.ColumnName}";
-
                     columnNames.Append($"{column.ColumnName}, ");
                     parameterNames.Append($"{paramName}, ");
 
@@ -740,6 +792,7 @@ namespace aspnet
                     {
                         if (string.IsNullOrEmpty(inputValue))
                         {
+
                             ShowMessage("新增失敗：密碼欄位不能為空。", "error");
                             return;
                         }
@@ -750,6 +803,7 @@ namespace aspnet
                     {
                         if (string.IsNullOrEmpty(inputValue))
                         {
+
                             inputValue = "#000000";
                         }
                     }
@@ -767,14 +821,19 @@ namespace aspnet
             string cols = columnNames.ToString().TrimEnd(',', ' ');
             string vals = parameterNames.ToString().TrimEnd(',', ' ');
             string insertSql = $"INSERT INTO {tableName} ({cols}) VALUES ({vals})";
-
             try
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: Insert SQL: {insertSql}");
+                foreach (var p in parameters)
+                {
+                    System.Diagnostics.Debug.WriteLine($"DEBUG: Param {p.ParameterName}: {p.Value}");
+                }
+#endif
                 using (SQLiteConnection conn = new SQLiteConnection(connString))
                 using (SQLiteCommand cmd = new SQLiteCommand(insertSql, conn))
                 {
                     cmd.Parameters.AddRange(parameters.ToArray());
-
                     conn.Open();
                     int rowsAffected = cmd.ExecuteNonQuery();
 
@@ -790,10 +849,16 @@ namespace aspnet
             }
             catch (SQLiteException ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 新增資料庫錯誤: {ex.Message}");
+#endif
                 ShowMessage($"新增資料庫錯誤：{ex.Message}", "error");
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 新增錯誤: {ex.Message}");
+#endif
                 ShowMessage($"新增錯誤：{ex.Message}", "error");
             }
 
@@ -822,19 +887,21 @@ namespace aspnet
 
             List<string> selectedCategoryIDs = lbCategory.Items.Cast<ListItem>()
                                                       .Where(li => li.Selected)
+
                                                       .Select(li => li.Value)
                                                       .ToList();
-
             try
             {
                 using (SQLiteConnection conn = new SQLiteConnection(connString))
                 {
                     conn.Open();
-
                     string deleteSql = "DELETE FROM CategoryRecords WHERE BookID = @BookID";
                     using (SQLiteCommand deleteCmd = new SQLiteCommand(deleteSql, conn))
                     {
                         deleteCmd.Parameters.AddWithValue("@BookID", bookID);
+#if DEBUG
+                        System.Diagnostics.Debug.WriteLine($"DEBUG: CategoryRecords 刪除 SQL: {deleteSql}, BookID: {bookID}");
+#endif
                         deleteCmd.ExecuteNonQuery();
                     }
 
@@ -844,11 +911,13 @@ namespace aspnet
                         using (SQLiteCommand insertCmd = new SQLiteCommand(insertSql, conn))
                         {
                             insertCmd.Parameters.AddWithValue("@BookID", bookID);
-
                             foreach (string categoryID in selectedCategoryIDs)
                             {
                                 insertCmd.Parameters.AddWithValue("@CategoryID", categoryID);
                                 insertCmd.ExecuteNonQuery();
+#if DEBUG
+                                System.Diagnostics.Debug.WriteLine($"DEBUG: CategoryRecords 插入: BookID={bookID}, CategoryID={categoryID}");
+#endif
                             }
                         }
                         ShowMessage($"成功更新書籍 ID {bookID} 的類別關聯 (共 {selectedCategoryIDs.Count} 個類別)。", "success");
@@ -861,10 +930,16 @@ namespace aspnet
             }
             catch (SQLiteException ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 新增/更新關聯資料庫錯誤: {ex.Message}");
+#endif
                 ShowMessage($"新增/更新關聯資料庫錯誤：{ex.Message}", "error");
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 新增/更新關聯錯誤: {ex.Message}");
+#endif
                 ShowMessage($"新增/更新關聯錯誤：{ex.Message}", "error");
             }
 
@@ -892,6 +967,7 @@ namespace aspnet
                 using (SQLiteConnection conn = new SQLiteConnection(connString))
                 using (SQLiteCommand cmd = new SQLiteCommand(selectQuery, conn))
                 {
+
                     conn.Open();
                     SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
                     DataTable dt = new DataTable();
@@ -901,6 +977,9 @@ namespace aspnet
             }
             catch (Exception ex)
             {
+#if DEBUG
+                System.Diagnostics.Debug.WriteLine($"DEBUG: 獲取資料表結構錯誤 ({tableName}): {ex.Message}");
+#endif
                 System.Diagnostics.Debug.WriteLine($"獲取資料表結構錯誤 ({tableName}): {ex.Message}");
                 return null;
             }
