@@ -105,6 +105,7 @@
   <ItemGroup>
     <Content Include="About.aspx" />
     <Content Include="adminPage.aspx" />
+    <Content Include="admins\BookCategory.aspx" />
     <Content Include="admins\books.aspx" />
     <Content Include="admins\category.aspx" />
     <Content Include="admins\lendRecord.aspx" />
@@ -300,6 +301,13 @@
     </Compile>
     <Compile Include="adminPage.aspx.designer.cs">
       <DependentUpon>adminPage.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="admins\BookCategory.aspx.cs">
+      <DependentUpon>BookCategory.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="admins\BookCategory.aspx.designer.cs">
+      <DependentUpon>BookCategory.aspx</DependentUpon>
     </Compile>
     <Compile Include="admins\books.aspx.cs">
       <DependentUpon>books.aspx</DependentUpon>

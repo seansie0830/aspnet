@@ -30,7 +30,7 @@ namespace aspnet
                 if (IsUserAdmin(userName))
                 {
                     // 如果 isAdmin 是 1，則跳轉到 /adminPage
-                    Response.Redirect("~/adminPage.aspx");
+                    Response.Redirect("~/admins/main.aspx");
                     return; // 確保在重定向後停止執行
                 }
                 // **STEP 1 結束**
