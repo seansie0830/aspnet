@@ -32,10 +32,19 @@
         }
 
         /* 標籤和輸入框樣式 */
-        .form-group label {
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 5px;
+            .form-group label {
+                font-weight: bold;
+                color: #555;
+                margin-bottom: 5px;
+            }
+
+        .login-links {
+            /* 確保與上方內容有間距 */
+            margin-top: 15px;
+            /* ⭐ 最重要的置中屬性 ⭐ */
+            text-align: center;
+            /* 其他樣式，讓字體更小 */
+            font-size: 0.9em;
         }
 
         /* **** 關鍵修正在這裡：強制寬度和顯示類型 **** */
@@ -106,11 +115,11 @@
     </div>
 
     <div class="login-links">
-        <a href="#" id="linkRegister">註冊</a>
+        <a href="\register" id="linkRegister">註冊</a>
         
         <span class="link-separator">|</span>
         
-        <a href="#" id="linkForgotPassword">忘記密碼?</a>
+        <a href="\forgotPassword" id="linkForgotPassword">忘記密碼?</a>
     </div>
     <p class="message-box">
         <asp:Label ID="lblMessage" runat="server" ForeColor="Red"></asp:Label>

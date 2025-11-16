@@ -1,10 +1,8 @@
 ﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="AdminPage.aspx.cs" 
     Inherits="aspnet.AdminPage" MasterPageFile="~/Site.Master" %>
 
-<%-- 1. 頁面專屬的 CSS 樣式 (對應 Site.Master 中的 HeadContent) --%>
 <asp:Content ID="HeadContent" ContentPlaceHolderID="HeadContent" runat="server">
     <style type="text/css">
-        /* 1. 頁面主要容器 (設定最大寬度和居中) */
         .admin-container {
             max-width: 1200px;
             margin: 20px auto;
@@ -15,9 +13,8 @@
             font-family: Arial, sans-serif;
         }
 
-        /* 2. 標題樣式 (紅色主題) */
         .page-header {
-            color: #dc3545; /* Red */
+            color: #dc3545;
             font-size: 24px;
             font-weight: bold;
             border-bottom: 3px solid #dc3545;
@@ -25,21 +22,94 @@
             margin-bottom: 20px;
         }
         
-        /* 3. 控制項列樣式 (Dropdown, Button) */
         .control-row {
-            display: flex; /* 使用 flexbox 模擬佈局 */
+            display: flex;
             align-items: center;
             gap: 20px;
             margin-bottom: 20px;
         }
 
-        /* 4. GridView 樣式 (gv-style) */
+        /* 新增按鈕樣式 */
+        .btn-new-record {
+            background-color: #28a745; 
+            color: white;
+            font-weight: bold;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-left: 20px;
+        }
+        .btn-new-record:hover {
+            background-color: #218838;
+        }
+
+        /* 新增表單 Panel 樣式 */
+        .insert-form-panel {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 6px;
+            background-color: #f8f9fa; /* Light background */
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .insert-form-header {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            font-size: 1.1em;
+            text-align: left;
+        }
+        .insert-form-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+        .insert-form-table td {
+            padding: 5px 0;
+        }
+        .insert-form-table td:first-child {
+            width: 150px;
+            font-weight: bold;
+            text-align: right;
+            padding-right: 15px;
+        }
+        .input-insert-form {
+             border: 1px solid #ced4da;
+            padding: 8px;
+            border-radius: 4px;
+            width: 90%;
+            box-sizing: border-box;
+        }
+        .form-actions {
+            margin-top: 15px;
+            text-align: right;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+        .btn-submit {
+             background-color: #28a745; /* Green */
+             margin-left: 10px;
+        }
+        .btn-submit:hover {
+             background-color: #218838;
+        }
+        .btn-cancel {
+             background-color: #dc3545; /* Red */
+        }
+        .btn-cancel:hover {
+             background-color: #c82333;
+        }
+
+
+        /* GridView 樣式 (gv-style) */
         .gv-style table {
             width: 100%;
             border-collapse: collapse;
         }
         .gv-style th {
-            background-color: #dc3545; /* Header: Red */
+            background-color: #dc3545;
             color: white;
             padding: 12px;
             text-align: left;
@@ -50,20 +120,13 @@
             border: 1px solid #ddd;
         }
         .gv-style tr:nth-child(even) td {
-            background-color: #f8f8f8; /* Alternating Row */
+            background-color: #f8f8f8;
         }
         .gv-style tr:hover td {
-            background-color: #ffeaea; /* Light Red Hover */
+            background-color: #ffeaea;
         }
-        /* 5. Footer Row 樣式 (用於新增紀錄) */
-        .gv-style tfoot tr td {
-            background-color: #e9ecef; /* Light Gray for Footer */
-            font-weight: bold;
-            padding: 10px;
-            border-top: 2px solid #ccc;
-        }
+        /* 由於移除了 Footer，這裡的 Footer 樣式不再需要 */
         
-        /* 6. 編輯模式下的輸入框 */
         .gv-style input[type="text"] {
             border: 1px solid #ccc;
             padding: 4px;
@@ -71,9 +134,8 @@
             width: 90%;
         }
 
-        /* 7. 按鈕樣式 (標準風格) */
         .btn-action {
-            background-color: #6c757d; /* Secondary Gray */
+            background-color: #6c757d;
             color: white;
             font-weight: bold;
             padding: 8px 16px;
@@ -85,15 +147,7 @@
         .btn-action:hover {
             background-color: #5a6268;
         }
-        /* 新增/儲存按鈕的特定顏色 */
-        .btn-insert {
-             background-color: #28a745; /* Green for Insert */
-        }
-        .btn-insert:hover {
-             background-color: #218838;
-        }
 
-        /* 8. 狀態訊息樣式 */
         .message-box {
             padding: 15px;
             border-radius: 6px;
@@ -101,19 +155,19 @@
             border: 1px solid transparent;
         }
         .message-box-error {
-            background-color: #f8d7da; /* Light Red */
+            background-color: #f8d7da;
             border-color: #f5c6cb;
-            color: #721c24; /* Dark Red Text */
+            color: #721c24;
         }
         .message-box-success {
-            background-color: #d4edda; /* Light Green */
+            background-color: #d4edda;
             border-color: #c3e6cb;
-            color: #155724; /* Dark Green Text */
+            color: #155724;
         }
         .message-box-info {
-            background-color: #cce5ff; /* Light Blue */
+            background-color: #cce5ff;
             border-color: #b8daff;
-            color: #004085; /* Dark Blue Text */
+            color: #004085;
         }
     </style>
 </asp:Content>
@@ -129,6 +183,10 @@
             <asp:DropDownList ID="ddlTables" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlTables_SelectedIndexChanged" 
                 style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
             </asp:DropDownList>
+            
+            <%-- 【新增】顯式新增紀錄按鈕 --%>
+            <asp:Button ID="btnShowInsert" runat="server" Text="✚ 新增紀錄" 
+                OnClick="btnShowInsert_Click" CssClass="btn-new-record" />
 
         </div>
 
@@ -136,6 +194,17 @@
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" 
             CssClass="message-box" role="alert">
             <asp:Label ID="lblMessage" runat="server" style="font-weight: bold;"></asp:Label>
+        </asp:Panel>
+        
+        <%-- 【新增】獨立的新增紀錄表單 Panel --%>
+        <asp:Panel ID="pnlInsertForm" runat="server" Visible="False" CssClass="insert-form-panel">
+            <h3>新增紀錄</h3>
+            <asp:PlaceHolder ID="phInsertFormControls" runat="server"></asp:PlaceHolder>
+            
+            <div class="form-actions">
+                <asp:Button ID="btnCancelInsert" runat="server" Text="取消新增" OnClick="btnCancelInsert_Click" CssClass="btn-action btn-cancel" />
+                <asp:Button ID="btnInsertRecord" runat="server" Text="確認新增並儲存" OnClick="btnInsertRecord_Click" CssClass="btn-action btn-submit" />
+            </div>
         </asp:Panel>
 
 
@@ -145,13 +214,13 @@
             CssClass="gv-style" 
             AllowPaging="True" 
             PageSize="15"
-            ShowFooter="True" 
+            ShowFooter="False" 
             OnPageIndexChanging="gvAdminData_PageIndexChanging"
             OnRowEditing="gvAdminData_RowEditing"
             OnRowUpdating="gvAdminData_RowUpdating"
             OnRowDeleting="gvAdminData_RowDeleting"
             OnRowCancelingEdit="gvAdminData_RowCancelingEdit"
-            OnRowCommand="gvAdminData_RowCommand"
+            OnRowDataBound="gvAdminData_RowDataBound" 
             EmptyDataText="目前此資料表無數據或尚未選擇資料表。">
             
             <Columns>

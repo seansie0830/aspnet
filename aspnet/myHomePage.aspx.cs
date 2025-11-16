@@ -19,11 +19,22 @@ namespace aspnet
             if (!User.Identity.IsAuthenticated)
             {
                 Response.Redirect("~/Login.aspx");
+                return; // 確保在重定向後停止執行
             }
 
             if (!IsPostBack)
             {
                 string userName = User.Identity.Name;
+
+                // **STEP 1: 檢查是否為管理員並跳轉**
+                if (IsUserAdmin(userName))
+                {
+                    // 如果 isAdmin 是 1，則跳轉到 /adminPage
+                    Response.Redirect("~/adminPage.aspx");
+                    return; // 確保在重定向後停止執行
+                }
+                // **STEP 1 結束**
+
                 lblUserInfo.Text = $"歡迎您，{userName}！您目前的借閱狀態如下：";
 
                 BindLendRecords(userName);
@@ -187,5 +198,29 @@ namespace aspnet
                 }
             }
         }
+        private bool IsUserAdmin(string userName)
+        {
+            string connString = GetConnectionString();
+            // 查詢 isAdmin 欄位
+            string sql = "SELECT isAdmin FROM Users WHERE UserName = @UserName";
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@UserName", userName);
+                conn.Open();
+                object result = cmd.ExecuteScalar();
+
+                // 檢查結果是否為 DBNull 或 null，並確認是否為 1
+                if (result != null && result != DBNull.Value)
+                {
+                    // 假設 isAdmin 儲存為 INTEGER，1 表示是管理員
+                    return Convert.ToInt32(result) == 1;
+                }
+                return false;
+            }
+        }
     }
+
+
 }
