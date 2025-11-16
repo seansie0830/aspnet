@@ -1,5 +1,4 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="AdminPage.aspx.cs" 
-    Inherits="aspnet.AdminPage" MasterPageFile="~/Site.Master" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="AdminPage.aspx.cs" MasterPageFile="~/Site.Master" Inherits="aspnet.AdminPage" %>
 
 <asp:Content ID="HeadContent" ContentPlaceHolderID="HeadContent" runat="server">
     <style type="text/css">
@@ -29,7 +28,6 @@
             margin-bottom: 20px;
         }
 
-        /* 新增按鈕樣式 */
         .btn-new-record {
             background-color: #28a745; 
             color: white;
@@ -45,12 +43,11 @@
             background-color: #218838;
         }
 
-        /* 新增表單 Panel 樣式 */
         .insert-form-panel {
             border: 1px solid #ccc;
             padding: 20px;
             border-radius: 6px;
-            background-color: #f8f9fa; /* Light background */
+            background-color: #f8f9fa; 
             margin-top: 20px;
             margin-bottom: 20px;
         }
@@ -76,12 +73,33 @@
             padding-right: 15px;
         }
         .input-insert-form {
-             border: 1px solid #ced4da;
+            border: 1px solid #ced4da;
             padding: 8px;
             border-radius: 4px;
             width: 90%;
             box-sizing: border-box;
         }
+        
+        /* 顏色調色盤專用樣式 */
+        .color-picker-input {
+            width: 100px !important; 
+            height: 38px;
+            padding: 0;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        /* 類別多選框樣式 */
+        .category-multiselect {
+            width: 90% !important;
+            min-height: 150px;
+            max-height: 300px;
+            border: 1px solid #ced4da;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
         .form-actions {
             margin-top: 15px;
             text-align: right;
@@ -89,17 +107,17 @@
             padding-top: 15px;
         }
         .btn-submit {
-             background-color: #28a745; /* Green */
-             margin-left: 10px;
+            background-color: #28a745; 
+            margin-left: 10px;
         }
         .btn-submit:hover {
-             background-color: #218838;
+            background-color: #218838;
         }
         .btn-cancel {
-             background-color: #dc3545; /* Red */
+            background-color: #dc3545; 
         }
         .btn-cancel:hover {
-             background-color: #c82333;
+            background-color: #c82333;
         }
 
 
@@ -125,13 +143,18 @@
         .gv-style tr:hover td {
             background-color: #ffeaea;
         }
-        /* 由於移除了 Footer，這裡的 Footer 樣式不再需要 */
         
-        .gv-style input[type="text"] {
+        .gv-style input[type="text"], .gv-style input[type="color"] {
             border: 1px solid #ccc;
             padding: 4px;
             border-radius: 4px;
             width: 90%;
+        }
+        .gv-style input[type="color"] {
+            width: 40px; 
+            height: 25px;
+            padding: 0;
+            border: none;
         }
 
         .btn-action {
@@ -184,7 +207,6 @@
                 style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
             </asp:DropDownList>
             
-            <%-- 【新增】顯式新增紀錄按鈕 --%>
             <asp:Button ID="btnShowInsert" runat="server" Text="✚ 新增紀錄" 
                 OnClick="btnShowInsert_Click" CssClass="btn-new-record" />
 
@@ -196,7 +218,6 @@
             <asp:Label ID="lblMessage" runat="server" style="font-weight: bold;"></asp:Label>
         </asp:Panel>
         
-        <%-- 【新增】獨立的新增紀錄表單 Panel --%>
         <asp:Panel ID="pnlInsertForm" runat="server" Visible="False" CssClass="insert-form-panel">
             <h3>新增紀錄</h3>
             <asp:PlaceHolder ID="phInsertFormControls" runat="server"></asp:PlaceHolder>
@@ -217,23 +238,14 @@
             ShowFooter="False" 
             OnPageIndexChanging="gvAdminData_PageIndexChanging"
             OnRowEditing="gvAdminData_RowEditing"
+            OnRowCancelingEdit="gvAdminData_RowCancelingEdit"
             OnRowUpdating="gvAdminData_RowUpdating"
             OnRowDeleting="gvAdminData_RowDeleting"
-            OnRowCancelingEdit="gvAdminData_RowCancelingEdit"
-            OnRowDataBound="gvAdminData_RowDataBound" 
-            EmptyDataText="目前此資料表無數據或尚未選擇資料表。">
+            OnRowDataBound="gvAdminData_RowDataBound">
             
             <Columns>
-                <asp:CommandField ShowEditButton="True" ShowDeleteButton="True" HeaderText="操作" 
-                    EditText="編輯" UpdateText="更新" CancelText="取消" DeleteText="刪除" />
+                <%-- Custom columns are added programmatically in code-behind for Categories --%>
             </Columns>
-
-            <HeaderStyle CssClass="gv-header" />
-            <PagerStyle CssClass="gv-pager" />
         </asp:GridView>
-
-        <div style="margin-top: 20px; text-align: center;">
-            <a href="MyHomepage.aspx" style="color: #007bff; text-decoration: underline;">返回個人首頁</a>
-        </div>
     </div>
 </asp:Content>

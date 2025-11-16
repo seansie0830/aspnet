@@ -42,14 +42,9 @@ namespace aspnet
             }
             else
             {
-                // *** 修正步驟 3：在 PostBack 階段重新生成動態控制項 ***
-                // 檢查 Session 標記和新增表單的可見性，以確保 FindControl 能夠成功找到動態控制項。
                 if (Session["IsInserting"] != null && pnlInsertForm.Visible)
                 {
                     GenerateInsertForm(ddlTables.SelectedValue);
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-LOAD] PostBack: 重新生成 {ddlTables.SelectedValue} 的新增表單以確保 FindControl 成功。");
-#endif
                 }
             }
         }
@@ -113,6 +108,7 @@ namespace aspnet
             ddlTables.Items.Add(new ListItem("書籍主檔 (Books)", "Books"));
             ddlTables.Items.Add(new ListItem("借閱記錄 (LendRecords)", "LendRecords"));
             ddlTables.Items.Add(new ListItem("書籍類別 (Categories)", "Categories"));
+            ddlTables.Items.Add(new ListItem("書籍類別關聯 (CategoryRecords)", "CategoryRecords"));
             if (ddlTables.Items.FindByValue("Users") != null)
             {
                 ddlTables.SelectedValue = "Users";
@@ -124,13 +120,29 @@ namespace aspnet
             if (string.IsNullOrEmpty(tableName)) return;
 
             string connString = GetConnectionString();
-            if (!new[] { "Users", "Books", "LendRecords", "Categories" }.Contains(tableName))
+            if (!new[] { "Users", "Books", "LendRecords", "Categories", "CategoryRecords" }.Contains(tableName))
             {
                 ShowMessage("無效的資料表名稱。", "error");
                 return;
             }
 
-            string selectQuery = $"SELECT * FROM {tableName}";
+            string selectQuery = string.Empty;
+            if (tableName == "CategoryRecords")
+            {
+                selectQuery = @"SELECT 
+                                b.BookID, 
+                                b.Title AS BookTitle,
+                                GROUP_CONCAT(c.CategoryName, ', ') AS CategoriesList
+                                FROM Books b
+                                LEFT JOIN CategoryRecords bcr ON b.BookID = bcr.BookID
+                                LEFT JOIN Categories c ON bcr.CategoryID = c.CategoryID
+                                GROUP BY b.BookID, b.Title
+                                ORDER BY b.BookID";
+            }
+            else
+            {
+                selectQuery = $"SELECT * FROM {tableName}";
+            }
 
             try
             {
@@ -144,10 +156,44 @@ namespace aspnet
 
                     SetDataKeyNames(tableName);
 
+                    if (tableName == "Categories")
+                    {
+                        gvAdminData.Columns.Clear();
+                        BoundField idField = new BoundField { DataField = "CategoryID", HeaderText = "CategoryID", ReadOnly = true };
+                        gvAdminData.Columns.Add(idField);
+
+                        BoundField nameField = new BoundField { DataField = "CategoryName", HeaderText = "CategoryName" };
+                        gvAdminData.Columns.Add(nameField);
+
+                        TemplateField colorField = new TemplateField { HeaderText = "colorHex" };
+                        colorField.ItemTemplate = new colorHexItemTemplate();
+                        colorField.EditItemTemplate = new colorHexEditItemTemplate();
+                        gvAdminData.Columns.Add(colorField);
+
+                        CommandField editField = new CommandField { ShowEditButton = true, EditText = "編輯", UpdateText = "更新", CancelText = "取消" };
+                        gvAdminData.Columns.Add(editField);
+
+                        CommandField deleteField = new CommandField { ShowDeleteButton = true, DeleteText = "刪除" };
+                        gvAdminData.Columns.Add(deleteField);
+
+                        gvAdminData.AutoGenerateColumns = false;
+                    }
+                    else if (tableName == "CategoryRecords")
+                    {
+                        gvAdminData.Columns.Clear();
+                        gvAdminData.AutoGenerateColumns = true;
+                    }
+                    else
+                    {
+                        gvAdminData.AutoGenerateColumns = true;
+                        gvAdminData.Columns.Clear();
+                    }
+
+
                     gvAdminData.DataSource = dt;
                     gvAdminData.DataBind();
 
-                    ShowMessage($"已成功載入資料表：{tableName} (共 {dt.Rows.Count} 筆記錄)。", "success");
+                    ShowMessage($"已成功載入資料表：{ddlTables.SelectedItem.Text} (共 {dt.Rows.Count} 筆記錄)。", "success");
                 }
             }
             catch (Exception ex)
@@ -155,7 +201,6 @@ namespace aspnet
                 System.Diagnostics.Debug.WriteLine($"資料綁定錯誤 ({tableName}): {ex.Message}");
                 ShowMessage($"載入資料時發生錯誤 ({tableName})：{ex.Message}", "error");
             }
-            // 每次綁定資料時，重設新增表單的可見性
             pnlInsertForm.Visible = false;
         }
 
@@ -167,13 +212,13 @@ namespace aspnet
                 case "Books": gvAdminData.DataKeyNames = new string[] { "BookID" }; break;
                 case "LendRecords": gvAdminData.DataKeyNames = new string[] { "LendRecordID" }; break;
                 case "Categories": gvAdminData.DataKeyNames = new string[] { "CategoryID" }; break;
+                case "CategoryRecords": gvAdminData.DataKeyNames = new string[] { "BookID" }; break;
                 default: gvAdminData.DataKeyNames = new string[] { "DummyKey" }; break;
             }
         }
 
         protected void ddlTables_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // 在切換表格時，重設新增狀態
             Session["IsInserting"] = null;
             pnlInsertForm.Visible = false;
             BindAdminData(ddlTables.SelectedValue);
@@ -187,6 +232,13 @@ namespace aspnet
 
         protected void gvAdminData_RowEditing(object sender, GridViewEditEventArgs e)
         {
+            if (ddlTables.SelectedValue == "CategoryRecords")
+            {
+                e.Cancel = true;
+                ShowMessage("CategoryRecords 應透過新增功能進行調整，不開放直接編輯 GridView。", "info");
+                return;
+            }
+
             gvAdminData.EditIndex = e.NewEditIndex;
             BindAdminData(ddlTables.SelectedValue);
         }
@@ -227,8 +279,18 @@ namespace aspnet
                 }
             }
 
+            string deleteSql = string.Empty;
+            if (tableName == "CategoryRecords")
+            {
+                deleteSql = "DELETE FROM CategoryRecords WHERE BookID = @Key";
+                keyName = "BookID";
+            }
+            else
+            {
+                deleteSql = $"DELETE FROM {tableName} WHERE {keyName} = @Key";
+            }
+
             string connString = GetConnectionString();
-            string deleteSql = $"DELETE FROM {tableName} WHERE {keyName} = @Key";
 
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             using (SQLiteCommand cmd = new SQLiteCommand(deleteSql, conn))
@@ -261,6 +323,14 @@ namespace aspnet
         protected void gvAdminData_RowUpdating(object sender, GridViewUpdateEventArgs e)
         {
             string tableName = ddlTables.SelectedValue;
+            if (tableName == "CategoryRecords")
+            {
+                ShowMessage("CategoryRecords 應透過新增功能進行調整。", "error");
+                gvAdminData.EditIndex = -1;
+                BindAdminData(tableName);
+                return;
+            }
+
             if (gvAdminData.DataKeyNames.Length == 0)
             {
                 ShowMessage("無法更新：未找到主鍵資訊。", "error");
@@ -290,27 +360,47 @@ namespace aspnet
                     return;
                 }
 
-                string[] columnNames = currentData.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
-
-                for (int i = 0; i < gvAdminData.Columns.Count; i++)
+                if (tableName == "Categories")
                 {
-                    if (i == 0) continue;
+                    string categoryName = (gvAdminData.Rows[e.RowIndex].Cells[1].Controls[0] as TextBox)?.Text.Trim();
+                    string colorHex = (gvAdminData.Rows[e.RowIndex].Cells[2].FindControl("txtcolorHexEdit") as TextBox)?.Text.Trim();
 
-                    DataControlFieldCell cell = gvAdminData.Rows[e.RowIndex].Cells[i] as DataControlFieldCell;
-                    if (cell != null && cell.Controls.Count > 0)
+                    if (!string.IsNullOrEmpty(categoryName))
                     {
-                        TextBox txt = cell.Controls.OfType<TextBox>().FirstOrDefault();
-                        if (txt != null)
+                        setClauses.Append("CategoryName = @CategoryName, ");
+                        parameters.Add(new SQLiteParameter("@CategoryName", categoryName));
+                    }
+
+                    if (!string.IsNullOrEmpty(colorHex))
+                    {
+                        setClauses.Append("colorHex = @colorHex, ");
+                        parameters.Add(new SQLiteParameter("@colorHex", colorHex));
+                    }
+                }
+                else
+                {
+                    string[] columnNames = currentData.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
+
+                    for (int i = 0; i < gvAdminData.Columns.Count; i++)
+                    {
+                        if (i == 0) continue;
+
+                        DataControlFieldCell cell = gvAdminData.Rows[e.RowIndex].Cells[i] as DataControlFieldCell;
+                        if (cell != null && cell.Controls.Count > 0)
                         {
-                            if ((i - 1) < columnNames.Length)
+                            TextBox txt = cell.Controls.OfType<TextBox>().FirstOrDefault();
+                            if (txt != null)
                             {
-                                string columnName = columnNames[i - 1];
+                                if ((i - 1) < columnNames.Length)
+                                {
+                                    string columnName = columnNames[i - 1];
 
-                                if (columnName.Equals(keyName, StringComparison.OrdinalIgnoreCase)) continue;
+                                    if (columnName.Equals(keyName, StringComparison.OrdinalIgnoreCase)) continue;
 
-                                string paramName = $"@{columnName}";
-                                setClauses.Append($"{columnName} = {paramName}, ");
-                                parameters.Add(new SQLiteParameter(paramName, txt.Text));
+                                    string paramName = $"@{columnName}";
+                                    setClauses.Append($"{columnName} = {paramName}, ");
+                                    parameters.Add(new SQLiteParameter(paramName, txt.Text));
+                                }
                             }
                         }
                     }
@@ -357,29 +447,66 @@ namespace aspnet
 
         protected void gvAdminData_RowDataBound(object sender, GridViewRowEventArgs e)
         {
-            // 由於改為顯式新增按鈕和表單，此方法不再處理 Footer Row 邏輯
+            if (e.Row.RowType == DataControlRowType.DataRow && ddlTables.SelectedValue == "Categories")
+            {
+                DataRowView drv = e.Row.DataItem as DataRowView;
+                if (drv != null)
+                {
+                    if (e.Row.RowState == DataControlRowState.Normal || e.Row.RowState == DataControlRowState.Alternate)
+                    {
+                        string colorHex = drv["colorHex"].ToString();
+                        TableCell colorCell = e.Row.Cells[2];
+                        colorCell.Controls.Clear();
+                        if (!string.IsNullOrEmpty(colorHex))
+                        {
+                            Label colorLabel = new Label { Text = colorHex };
+                            colorLabel.Style.Add("background-color", colorHex);
+                            colorLabel.Style.Add("color", IsColorDark(colorHex) ? "white" : "black");
+                            colorLabel.Style.Add("padding", "2px 5px");
+                            colorLabel.Style.Add("border-radius", "3px");
+                            colorLabel.Style.Add("display", "inline-block");
+                            colorCell.Controls.Add(colorLabel);
+                        }
+                    }
+                }
+            }
             if (e.Row.RowType == DataControlRowType.Footer)
             {
                 e.Row.Visible = false;
             }
         }
 
-        // =========================================================
-        // 顯式新增功能 (New Insert Functionality)
-        // =========================================================
+        private bool IsColorDark(string hex)
+        {
+            if (string.IsNullOrEmpty(hex) || !hex.StartsWith("#") || hex.Length < 4) return false;
+            try
+            {
+                string rHex = hex.Length == 4 ? hex.Substring(1, 1) + hex.Substring(1, 1) : hex.Substring(1, 2);
+                string gHex = hex.Length == 4 ? hex.Substring(2, 1) + hex.Substring(2, 1) : hex.Substring(3, 2);
+                string bHex = hex.Length == 4 ? hex.Substring(3, 1) + hex.Substring(3, 1) : hex.Substring(5, 2);
+
+                int r = int.Parse(rHex, System.Globalization.NumberStyles.HexNumber);
+                int g = int.Parse(gHex, System.Globalization.NumberStyles.HexNumber);
+                int b = int.Parse(bHex, System.Globalization.NumberStyles.HexNumber);
+
+                double brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 128;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         protected void btnShowInsert_Click(object sender, EventArgs e)
         {
-            // 1. 隱藏 GridView 的編輯模式
             gvAdminData.EditIndex = -1;
             BindAdminData(ddlTables.SelectedValue);
 
-            // 2. 顯示並動態生成新增表單
             pnlInsertForm.Visible = true;
             GenerateInsertForm(ddlTables.SelectedValue);
             ShowMessage("請在下方表單中輸入新紀錄數據。", "info");
 
-            // *** 修正步驟 1：設置 Session 標記，告知 Page_Load 在 PostBack 時需要重建表單 ***
             Session["IsInserting"] = true;
         }
 
@@ -388,89 +515,184 @@ namespace aspnet
             pnlInsertForm.Visible = false;
             ShowMessage($"已取消 {ddlTables.SelectedValue} 表格的新增操作。", "info");
 
-            // *** 修正步驟 2：移除 Session 標記 ***
             Session["IsInserting"] = null;
         }
 
         private void GenerateInsertForm(string tableName)
         {
-            // 清除現有的動態控制項
             phInsertFormControls.Controls.Clear();
 
             DataTable dtSchema = GetTableSchema(tableName);
             if (dtSchema == null) return;
             string primaryKeyName = GetPrimaryKeyName(tableName);
 
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-FORM] 正在為表格 {tableName} 生成新增表單。主鍵: {primaryKeyName}");
-#endif
-
-            // 創建表格用於佈局
             Table formTable = new Table { CssClass = "insert-form-table" };
 
-            // 顯示當前表格名稱
             TableHeaderRow headerRow = new TableHeaderRow();
-            TableHeaderCell headerCell = new TableHeaderCell { Text = $"新增至表格：**{tableName}**", ColumnSpan = 2, CssClass = "insert-form-header" };
+            TableHeaderCell headerCell = new TableHeaderCell { Text = $"新增至表格：**{ddlTables.SelectedItem.Text}**", ColumnSpan = 2, CssClass = "insert-form-header" };
             headerRow.Cells.Add(headerCell);
             formTable.Rows.Add(headerRow);
 
-            foreach (DataColumn column in dtSchema.Columns)
+            if (tableName == "CategoryRecords")
             {
-                // 忽略主鍵欄位 (假設它們是 AUTOINCREMENT)
-                if (column.ColumnName.Equals(primaryKeyName, StringComparison.OrdinalIgnoreCase))
+                AddBookCategoryRecordFormControls(formTable);
+            }
+            else
+            {
+                foreach (DataColumn column in dtSchema.Columns)
                 {
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-FORM] 欄位 {column.ColumnName} 為主鍵，已跳過。");
-#endif
-                    continue;
+                    if (column.ColumnName.Equals(primaryKeyName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    TableRow row = new TableRow();
+                    TableCell labelCell = new TableCell();
+                    Label lbl = new Label { Text = column.ColumnName + ":" };
+                    labelCell.Controls.Add(lbl);
+                    row.Cells.Add(labelCell);
+
+                    TableCell inputCell = new TableCell();
+
+                    if (tableName == "Categories" && column.ColumnName.Equals("colorHex", StringComparison.OrdinalIgnoreCase))
+                    {
+                        TextBox txtColor = new TextBox();
+                        txtColor.ID = "txtInsert_" + column.ColumnName;
+                        txtColor.CssClass = "input-insert-form color-picker-input";
+                        txtColor.Width = Unit.Percentage(90);
+                        txtColor.TextMode = TextBoxMode.Color;
+                        txtColor.Text = "#cccccc";
+                        inputCell.Controls.Add(txtColor);
+                    }
+                    else
+                    {
+                        TextBox txtInsert = new TextBox();
+                        txtInsert.ID = "txtInsert_" + column.ColumnName;
+                        txtInsert.CssClass = "input-insert-form";
+                        txtInsert.Width = Unit.Percentage(90);
+
+                        if (column.ColumnName.Contains("Date"))
+                        {
+                            txtInsert.ToolTip = "格式: YYYY-MM-DD (例如: 2024-01-01)";
+                        }
+                        else if (column.ColumnName.Equals("Password", StringComparison.OrdinalIgnoreCase))
+                        {
+                            txtInsert.ToolTip = "請輸入明文密碼 (系統會自動處理)";
+                            txtInsert.TextMode = TextBoxMode.Password;
+                        }
+                        else if (column.ColumnName.Equals("IsAdmin", StringComparison.OrdinalIgnoreCase))
+                        {
+                            txtInsert.ToolTip = "0=普通用戶, 1=管理員";
+                        }
+                        else if (column.DataType == typeof(int) || column.DataType == typeof(long))
+                        {
+                            txtInsert.ToolTip = "請輸入整數值";
+                        }
+
+                        inputCell.Controls.Add(txtInsert);
+                    }
+
+                    row.Cells.Add(inputCell);
+                    formTable.Rows.Add(row);
                 }
-
-                TableRow row = new TableRow();
-
-                // 標籤欄位
-                TableCell labelCell = new TableCell();
-                Label lbl = new Label { Text = column.ColumnName + ":" };
-                labelCell.Controls.Add(lbl);
-                row.Cells.Add(labelCell);
-
-                // 輸入欄位
-                TableCell inputCell = new TableCell();
-                TextBox txtInsert = new TextBox();
-                // *** 關鍵 ID 命名 ***
-                txtInsert.ID = "txtInsert_" + column.ColumnName;
-                txtInsert.CssClass = "input-insert-form";
-                txtInsert.Width = Unit.Percentage(90);
-
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[DEBUG-FORM] 為欄位 {column.ColumnName} 創建 TextBox ID: {txtInsert.ID}");
-#endif
-
-                // 增加提示和類型設定
-                if (column.ColumnName.Contains("Date"))
-                {
-                    txtInsert.ToolTip = "格式: YYYY-MM-DD (例如: 2024-01-01)";
-                }
-                else if (column.ColumnName.Equals("Password", StringComparison.OrdinalIgnoreCase))
-                {
-                    txtInsert.ToolTip = "請輸入明文密碼 (系統會自動處理)";
-                    txtInsert.TextMode = TextBoxMode.Password;
-                }
-                else if (column.ColumnName.Equals("IsAdmin", StringComparison.OrdinalIgnoreCase))
-                {
-                    txtInsert.ToolTip = "0=普通用戶, 1=管理員";
-                }
-                else if (column.DataType == typeof(int) || column.DataType == typeof(long))
-                {
-                    txtInsert.ToolTip = "請輸入整數值";
-                }
-
-                inputCell.Controls.Add(txtInsert);
-                row.Cells.Add(inputCell);
-
-                formTable.Rows.Add(row);
             }
 
             phInsertFormControls.Controls.Add(formTable);
+        }
+
+        private void AddBookCategoryRecordFormControls(Table formTable)
+        {
+            TableRow bookRow = new TableRow();
+            bookRow.Cells.Add(new TableCell { Text = "BookID/Title:" });
+            DropDownList ddlBook = new DropDownList { ID = "ddlInsert_BookID", CssClass = "input-insert-form" };
+            BindBooksDropdown(ddlBook);
+            bookRow.Cells.Add(new TableCell { Controls = { ddlBook } });
+            formTable.Rows.Add(bookRow);
+
+            TableRow categoryRow = new TableRow();
+            categoryRow.Cells.Add(new TableCell { Text = "Categories (多選):" });
+
+            Panel categoryPanel = new Panel();
+            categoryPanel.CssClass = "category-selector-container";
+
+            ListBox lbCategory = new ListBox
+            {
+                ID = "lbInsert_CategoryID",
+                SelectionMode = ListSelectionMode.Multiple,
+                Rows = 5,
+                CssClass = "input-insert-form category-multiselect"
+            };
+            BindCategoriesListBox(lbCategory);
+
+            categoryPanel.Controls.Add(lbCategory);
+
+            if (lbCategory.Items.Count == 0)
+            {
+                categoryPanel.Controls.Add(new LiteralControl("<span style='color: red; font-weight: bold;'>目前沒有類別！請先到 Categories 表格新增類別。</span>"));
+                btnInsertRecord.Enabled = false;
+            }
+            else
+            {
+                btnInsertRecord.Enabled = true;
+            }
+
+            categoryRow.Cells.Add(new TableCell { Controls = { categoryPanel } });
+            formTable.Rows.Add(categoryRow);
+        }
+
+        private void BindBooksDropdown(DropDownList ddl)
+        {
+            string connString = GetConnectionString();
+            string sql = "SELECT BookID, Title FROM Books ORDER BY Title";
+            ddl.Items.Clear();
+            ddl.Items.Add(new ListItem("-- 選擇書籍 --", ""));
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+            {
+                try
+                {
+                    conn.Open();
+                    using (SQLiteDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            ddl.Items.Add(new ListItem(dr["Title"].ToString(), dr["BookID"].ToString()));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"書籍載入錯誤: {ex.Message}");
+                }
+            }
+        }
+
+        private void BindCategoriesListBox(ListBox lb)
+        {
+            string connString = GetConnectionString();
+            string sql = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName";
+            lb.Items.Clear();
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+            {
+                try
+                {
+                    conn.Open();
+                    using (SQLiteDataReader dr = cmd.ExecuteReader())
+                    {
+                        while (dr.Read())
+                        {
+                            lb.Items.Add(new ListItem(dr["CategoryName"].ToString(), dr["CategoryID"].ToString()));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"類別載入錯誤: {ex.Message}");
+                }
+            }
         }
 
         protected void btnInsertRecord_Click(object sender, EventArgs e)
@@ -478,16 +700,15 @@ namespace aspnet
             string tableName = ddlTables.SelectedValue;
             string connString = GetConnectionString();
 
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 開始新增紀錄到表格: {tableName}");
-#endif
+            if (tableName == "CategoryRecords")
+            {
+                InsertBookCategoryRecord(connString);
+                return;
+            }
 
             DataTable dtSchema = GetTableSchema(tableName);
             if (dtSchema == null)
             {
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 錯誤: GetTableSchema 返回 null。");
-#endif
                 ShowMessage($"無法新增：無法獲取資料表 {tableName} 的結構。", "error");
                 return;
             }
@@ -498,21 +719,16 @@ namespace aspnet
             StringBuilder parameterNames = new StringBuilder();
             List<SQLiteParameter> parameters = new List<SQLiteParameter>();
 
-            // 從動態生成的控制項中獲取值
             foreach (DataColumn column in dtSchema.Columns)
             {
                 if (column.ColumnName.Equals(primaryKeyName, StringComparison.OrdinalIgnoreCase)) continue;
 
                 string expectedControlID = "txtInsert_" + column.ColumnName;
 
-                // 根據 ID 找到對應的 TextBox
                 TextBox txtInsert = (TextBox)phInsertFormControls.FindControl(expectedControlID);
 
                 if (txtInsert != null)
                 {
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 成功找到控制項 ID: {expectedControlID}");
-#endif
                     string paramName = $"@{column.ColumnName}";
 
                     columnNames.Append($"{column.ColumnName}, ");
@@ -520,11 +736,6 @@ namespace aspnet
 
                     string inputValue = txtInsert.Text.Trim();
 
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 收集值: 欄位 {column.ColumnName}, 值: '{inputValue}'");
-#endif
-
-                    // 如果是 Users 表格，且欄位是 Password，則進行簡單的 Hash
                     if (tableName.Equals("Users", StringComparison.OrdinalIgnoreCase) && column.ColumnName.Equals("Password", StringComparison.OrdinalIgnoreCase))
                     {
                         if (string.IsNullOrEmpty(inputValue))
@@ -535,28 +746,20 @@ namespace aspnet
                         inputValue = FormsAuthentication.HashPasswordForStoringInConfigFile(inputValue, "SHA1");
                     }
 
-                    // *** 新增檢查：如果欄位值為空字串，且欄位允許 DBNull/Nullable，可以考慮插入 DBNull
-                    // 由於 SQLite 對類型檢查寬鬆，且我們假設大部分欄位是必填，這裡保持直接插入空字串
+                    if (tableName.Equals("Categories", StringComparison.OrdinalIgnoreCase) && column.ColumnName.Equals("colorHex", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (string.IsNullOrEmpty(inputValue))
+                        {
+                            inputValue = "#000000";
+                        }
+                    }
 
                     parameters.Add(new SQLiteParameter(paramName, inputValue));
                 }
-#if DEBUG
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 警告: 未找到控制項 ID: {expectedControlID}");
-                }
-#endif
             }
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 欄位總數 (排除主鍵): {dtSchema.Columns.Count - 1}，已收集的欄位數量: {parameters.Count}");
-#endif
 
             if (columnNames.Length == 0)
             {
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 失敗: columnNames 為空。沒有收集到任何有效的輸入值。");
-#endif
                 ShowMessage("新增失敗：請輸入至少一個有效的值。", "error");
                 return;
             }
@@ -564,11 +767,6 @@ namespace aspnet
             string cols = columnNames.ToString().TrimEnd(',', ' ');
             string vals = parameterNames.ToString().TrimEnd(',', ' ');
             string insertSql = $"INSERT INTO {tableName} ({cols}) VALUES ({vals})";
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 最終 SQL: {insertSql}");
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-INSERT] 參數列表: {string.Join(", ", parameters.Select(p => $"{p.ParameterName}='{p.Value}'"))}");
-#endif
 
             try
             {
@@ -592,38 +790,102 @@ namespace aspnet
             }
             catch (SQLiteException ex)
             {
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[DEBUG-ERROR] SQLiteException: {ex.Message}");
-#endif
                 ShowMessage($"新增資料庫錯誤：{ex.Message}", "error");
             }
             catch (Exception ex)
             {
-#if DEBUG
-                System.Diagnostics.Debug.WriteLine($"[DEBUG-ERROR] General Exception: {ex.Message}");
-#endif
                 ShowMessage($"新增錯誤：{ex.Message}", "error");
             }
 
-            // 新增完成後隱藏表單並重新綁定數據
             pnlInsertForm.Visible = false;
-            // *** 修正步驟 4：新增成功後，移除 Session 標記 ***
             Session["IsInserting"] = null;
             BindAdminData(tableName);
         }
 
-        // =========================================================
-        // 通用輔助方法
-        // =========================================================
+        private void InsertBookCategoryRecord(string connString)
+        {
+            DropDownList ddlBook = phInsertFormControls.FindControl("ddlInsert_BookID") as DropDownList;
+            ListBox lbCategory = phInsertFormControls.FindControl("lbInsert_CategoryID") as ListBox;
+
+            if (ddlBook == null || lbCategory == null)
+            {
+                ShowMessage("新增失敗：找不到必要的控制項。", "error");
+                return;
+            }
+
+            string bookID = ddlBook.SelectedValue;
+            if (string.IsNullOrEmpty(bookID))
+            {
+                ShowMessage("新增失敗：請選擇一本圖書。", "error");
+                return;
+            }
+
+            List<string> selectedCategoryIDs = lbCategory.Items.Cast<ListItem>()
+                                                      .Where(li => li.Selected)
+                                                      .Select(li => li.Value)
+                                                      .ToList();
+
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection(connString))
+                {
+                    conn.Open();
+
+                    string deleteSql = "DELETE FROM CategoryRecords WHERE BookID = @BookID";
+                    using (SQLiteCommand deleteCmd = new SQLiteCommand(deleteSql, conn))
+                    {
+                        deleteCmd.Parameters.AddWithValue("@BookID", bookID);
+                        deleteCmd.ExecuteNonQuery();
+                    }
+
+                    if (selectedCategoryIDs.Any())
+                    {
+                        string insertSql = "INSERT INTO CategoryRecords (BookID, CategoryID) VALUES (@BookID, @CategoryID)";
+                        using (SQLiteCommand insertCmd = new SQLiteCommand(insertSql, conn))
+                        {
+                            insertCmd.Parameters.AddWithValue("@BookID", bookID);
+
+                            foreach (string categoryID in selectedCategoryIDs)
+                            {
+                                insertCmd.Parameters.AddWithValue("@CategoryID", categoryID);
+                                insertCmd.ExecuteNonQuery();
+                            }
+                        }
+                        ShowMessage($"成功更新書籍 ID {bookID} 的類別關聯 (共 {selectedCategoryIDs.Count} 個類別)。", "success");
+                    }
+                    else
+                    {
+                        ShowMessage($"成功清除書籍 ID {bookID} 的所有類別關聯。", "success");
+                    }
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                ShowMessage($"新增/更新關聯資料庫錯誤：{ex.Message}", "error");
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"新增/更新關聯錯誤：{ex.Message}", "error");
+            }
+
+            pnlInsertForm.Visible = false;
+            Session["IsInserting"] = null;
+            BindAdminData(ddlTables.SelectedValue);
+        }
 
         private DataTable GetTableSchema(string tableName)
         {
+            if (tableName == "CategoryRecords")
+            {
+                DataTable dt = new DataTable();
+                dt.Columns.Add("BookID");
+                dt.Columns.Add("BookTitle");
+                dt.Columns.Add("CategoriesList");
+                return dt;
+            }
+
             string connString = GetConnectionString();
             string selectQuery = $"SELECT * FROM {tableName} LIMIT 0";
-
-#if DEBUG
-            System.Diagnostics.Debug.WriteLine($"[DEBUG-SCHEMA] 嘗試獲取表格結構: {tableName}");
-#endif
 
             try
             {
@@ -634,9 +896,6 @@ namespace aspnet
                     SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
-#if DEBUG
-                    System.Diagnostics.Debug.WriteLine($"[DEBUG-SCHEMA] 成功獲取 {tableName} 結構，包含 {dt.Columns.Count} 個欄位。");
-#endif
                     return dt;
                 }
             }
@@ -655,6 +914,7 @@ namespace aspnet
                 case "Books": return "BookID";
                 case "LendRecords": return "LendRecordID";
                 case "Categories": return "CategoryID";
+                case "CategoryRecords": return "BookID";
                 default: return "DummyKey";
             }
         }
@@ -677,6 +937,37 @@ namespace aspnet
             else
             {
                 pnlMessage.CssClass += " message-box-info";
+            }
+        }
+
+        private class colorHexItemTemplate : ITemplate
+        {
+            public void InstantiateIn(Control container)
+            {
+                Label lbl = new Label();
+                lbl.DataBinding += (s, e) =>
+                {
+                    Label senderLabel = (Label)s;
+                    GridViewRow row = (GridViewRow)senderLabel.NamingContainer;
+                    string colorHex = DataBinder.Eval(row.DataItem, "ColorHex")?.ToString();
+                    senderLabel.Text = colorHex;
+                };
+                container.Controls.Add(lbl);
+            }
+        }
+
+        private class colorHexEditItemTemplate : ITemplate
+        {
+            public void InstantiateIn(Control container)
+            {
+                TextBox txt = new TextBox { ID = "txtcolorHexEdit", TextMode = TextBoxMode.Color, Width = new Unit(80, UnitType.Pixel) };
+                txt.DataBinding += (s, e) =>
+                {
+                    TextBox senderTextBox = (TextBox)s;
+                    GridViewRow row = (GridViewRow)senderTextBox.NamingContainer;
+                    senderTextBox.Text = DataBinder.Eval(row.DataItem, "colorHex")?.ToString();
+                };
+                container.Controls.Add(txt);
             }
         }
     }
