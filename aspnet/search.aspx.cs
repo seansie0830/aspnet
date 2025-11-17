@@ -262,12 +262,13 @@ public partial class Search : Page
                     }
 
                     // 3. 更新 Books (AvailableCopies - 1)
-                    using (SQLiteCommand cmdUpdate = new SQLiteCommand("UPDATE Books SET AvailableCopies = AvailableCopies - 1 WHERE BookID = @BookID", conn, transaction))
+                    /*using (SQLiteCommand cmdUpdate = new SQLiteCommand("UPDATE Books SET AvailableCopies = AvailableCopies - 1 WHERE BookID = @BookID", conn, transaction))
 
                     {
                         cmdUpdate.Parameters.AddWithValue("@BookID", bookID);
                         cmdUpdate.ExecuteNonQuery();
                     }
+                    */
 
                     // 4. 寫入 LendRecords 記錄
                     DateTime borrowDate = DateTime.Now;

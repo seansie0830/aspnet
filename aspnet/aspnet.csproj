@@ -111,6 +111,7 @@
     <Content Include="admins\lendRecord.aspx" />
     <Content Include="admins\main.aspx" />
     <Content Include="admins\Users.aspx" />
+    <Content Include="catLookup.aspx" />
     <Content Include="Contact.aspx" />
     <Content Include="Content\bootstrap-datepicker.css" />
     <Content Include="Content\bootstrap-datepicker.min.css" />
@@ -353,6 +354,13 @@
       <DependentUpon>About.aspx</DependentUpon>
     </Compile>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="catLookup.aspx.cs">
+      <DependentUpon>catLookup.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="catLookup.aspx.designer.cs">
+      <DependentUpon>catLookup.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Contact.aspx.cs">
       <DependentUpon>Contact.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

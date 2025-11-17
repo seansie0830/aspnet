@@ -22,11 +22,12 @@
 
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" runat="server" href="~/">線上圖書館</a>
+                <a class="navbar-brand" runat="server" href="~/myHomePage">線上圖書館</a>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item"><a class="nav-link" runat="server" href="~/Search">書籍查詢</a></li>
-                        
+                        <li class="nav-item"><a class="nav-link" runat="server" href="~/catLookup">類別瀏覽</a></li>
+
                         <asp:LoginView runat="server">
                             <LoggedInTemplate>
                                 <li class="nav-item"><a class="nav-link" runat="server" href="~/myHomePage">我的首頁</a></li>

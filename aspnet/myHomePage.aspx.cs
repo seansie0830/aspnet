@@ -157,7 +157,8 @@ namespace aspnet
             string connString = GetConnectionString();
 
             string updateLendSql = "UPDATE LendRecords SET ReturnDate = @ReturnDate WHERE LendRecordID = @LendRecordID AND ReturnDate IS NULL";
-            string updateBookSql = "UPDATE Books SET AvailableCopies = AvailableCopies + 1 WHERE BookID = @BookID";
+            //string updateBookSql = "UPDATE Books SET AvailableCopies = AvailableCopies + 1 WHERE BookID = @BookID";
+            // use trigger instead for data integrity
 
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             {
@@ -176,7 +177,7 @@ namespace aspnet
                                 return false;
                             }
                         }
-
+                        /*
                         using (SQLiteCommand cmdBook = new SQLiteCommand(updateBookSql, conn, transaction))
                         {
                             cmdBook.Parameters.AddWithValue("@BookID", bookID);
@@ -186,6 +187,7 @@ namespace aspnet
                                 return false;
                             }
                         }
+                        */
 
                         transaction.Commit();
                         return true;
