@@ -112,11 +112,13 @@
         .card-books { border-left-color: #ffc107; }
         .card-category { border-left-color: #17a2b8; }
         .card-records { border-left-color: #6f42c1; }
+        .card-boot-category { border-left-color: #dc3545; } /* 紅色 (新增) */
         
         .card-users a { background-color: #28a745; }
         .card-books a { background-color: #ffc107; color: #212529; }
         .card-category a { background-color: #17a2b8; }
         .card-records a { background-color: #6f42c1; }
+        .card-boot-category a { background-color: #dc3545; } /* 紅色 (新增) */
 
     </style>
 </asp:Content>
@@ -168,7 +170,11 @@
                 <p>查詢、追蹤和管理所有用戶的借閱歷史。</p>
                 <a href="/admins/LendRecord.aspx">進入管理頁面</a>
             </div>
-
+            <div class="dashboard-card card-boot-category">
+                <h3>書籍類別管理</h3>
+                <p>查詢、追蹤和設定書籍所屬的類別。</p>
+                <a href="/admins/BookCategory.aspx">進入管理頁面</a>
+            </div>
         </div>
 
     </div>

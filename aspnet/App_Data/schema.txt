@@ -1,0 +1,89 @@
+CREATE TABLE Categories (
+    CategoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+    CategoryName TEXT NOT NULL UNIQUE,
+    ColorHex TEXT DEFAULT '#CCCCCC'  -- 用於介面設計
+);
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE TABLE Books (
+    BookID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Title TEXT NOT NULL,
+    Author TEXT,
+    ISBN TEXT UNIQUE,
+    TotalCopies INTEGER DEFAULT 1,
+    AvailableCopies INTEGER DEFAULT 1
+);
+CREATE TABLE CategoryRecords (
+    CategoryRecordID INTEGER PRIMARY KEY AUTOINCREMENT,
+    BookID INTEGER NOT NULL,
+    CategoryID INTEGER NOT NULL,
+    UNIQUE (BookID, CategoryID),
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
+);
+CREATE TABLE Users (
+    UserID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Username TEXT NOT NULL UNIQUE,
+    Password TEXT NOT NULL,
+    Email TEXT NOT NULL,
+    IsAdmin INTEGER DEFAULT 0
+);
+CREATE TABLE LendRecords (
+    LendRecordID INTEGER PRIMARY KEY AUTOINCREMENT, -- 使用 LendRecordID 作為主鍵
+    BookID INTEGER NOT NULL,
+    UserID INTEGER NOT NULL,
+    BorrowDate TEXT NOT NULL,       -- 借閱時間
+    DueDate TEXT NOT NULL,          -- 預計還書日期 (用於判斷逾期)
+    ReturnDate TEXT,                -- 還書日期 (NULL = 尚未歸還)
+    ExceptionNotes TEXT,            -- 記錄異常情形 (如：書損壞)
+    FOREIGN KEY (BookID) REFERENCES Books(BookID),
+    FOREIGN KEY (UserID) REFERENCES Users(UserID)
+);
+CREATE TRIGGER trg_LendRecords_DecreaseCopies
+AFTER INSERT ON LendRecords
+WHEN NEW.ReturnDate IS NULL
+BEGIN
+    -- 檢查是否有足夠的庫存
+    SELECT RAISE(ABORT, 'The book is currently out of stock or reserved.')
+    FROM Books
+    WHERE BookID = NEW.BookID
+      AND AvailableCopies <= 0;
+
+    -- 減少可用庫存
+    UPDATE Books
+    SET AvailableCopies = AvailableCopies - 1
+    WHERE BookID = NEW.BookID;
+END;
+CREATE TRIGGER trg_LendRecords_IncreaseCopies
+AFTER UPDATE OF ReturnDate ON LendRecords
+WHEN OLD.ReturnDate IS NULL AND NEW.ReturnDate IS NOT NULL
+BEGIN
+    -- 增加可用庫存
+    UPDATE Books
+    SET AvailableCopies = AvailableCopies + 1
+    WHERE BookID = NEW.BookID;
+END;
+CREATE TRIGGER trg_LendRecords_RestoreCopiesOnDelete
+AFTER DELETE ON LendRecords
+WHEN OLD.ReturnDate IS NULL -- 確保只有在刪除一筆「尚未歸還」的紀錄時才執行
+BEGIN
+    -- 增加可用庫存
+    UPDATE Books
+    SET AvailableCopies = AvailableCopies + 1
+    WHERE BookID = OLD.BookID;
+END;
+CREATE TRIGGER trg_Books_PreventTotalCopiesDecrease_v2
+BEFORE UPDATE OF TotalCopies ON Books
+WHEN NEW.TotalCopies < OLD.TotalCopies
+BEGIN
+    -- 檢查條件：
+    -- (舊的外借數量 = OLD.TotalCopies - OLD.AvailableCopies)
+    -- 如果外借數量大於 NEW.TotalCopies，則拋出錯誤
+    SELECT RAISE(ABORT, 'TotalCopies cannot be less than the number of currently borrowed books (Total - Available).')
+    WHERE OLD.TotalCopies - OLD.AvailableCopies > NEW.TotalCopies;
+END;
+CREATE TRIGGER trg_Books_AvailableTotalCheck
+BEFORE UPDATE ON Books
+WHEN NEW.AvailableCopies > NEW.TotalCopies
+BEGIN
+    SELECT RAISE(ABORT, 'AvailableCopies cannot be greater than TotalCopies.');
+END;

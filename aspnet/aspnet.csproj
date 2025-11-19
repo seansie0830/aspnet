@@ -109,6 +109,7 @@
     <Content Include="admins\books.aspx" />
     <Content Include="admins\category.aspx" />
     <Content Include="admins\lendRecord.aspx" />
+    <Content Include="admins\mailQueue.aspx" />
     <Content Include="admins\main.aspx" />
     <Content Include="admins\Users.aspx" />
     <Content Include="catLookup.aspx" />
@@ -330,6 +331,13 @@
     </Compile>
     <Compile Include="admins\lendRecord.aspx.designer.cs">
       <DependentUpon>lendRecord.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="admins\mailQueue.aspx.cs">
+      <DependentUpon>mailQueue.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="admins\mailQueue.aspx.designer.cs">
+      <DependentUpon>mailQueue.aspx</DependentUpon>
     </Compile>
     <Compile Include="admins\main.aspx.cs">
       <DependentUpon>main.aspx</DependentUpon>

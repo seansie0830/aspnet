@@ -255,7 +255,7 @@
                             <asp:BoundField DataField="Author" HeaderText="作者" SortExpression="Author" />
                             <asp:TemplateField HeaderText="動作">
                                 <ItemTemplate>
-                                    <asp:LinkButton ID="lnkSelectBook" runat="server" Text="選擇管理" CommandName="SelectBook" CommandArgument='<%# Eval("BookID") %>' />
+                                    <asp:LinkButton ID="lnkSelectBook" runat="server" Text="管理" CommandName="SelectBook" CommandArgument='<%# Eval("BookID") %>' />
                                 </ItemTemplate>
                             </asp:TemplateField>
                         </Columns>

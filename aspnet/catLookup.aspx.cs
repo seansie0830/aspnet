@@ -13,6 +13,7 @@ namespace aspnet
     public partial class catLookup : Page
     {
         private const string ConnectionStringName = "LibraryDBConnection";
+
         private string GetConnectionString()
         {
             return ConfigurationManager.ConnectionStrings[ConnectionStringName].ConnectionString;
@@ -30,6 +31,30 @@ namespace aspnet
             set { ViewState["SelectedCategoryName"] = value; }
         }
 
+        private bool IsChineseClassificationMode
+        {
+            get { return (bool)(ViewState["IsChineseClassificationMode"] ?? true); }
+            set { ViewState["IsChineseClassificationMode"] = value; }
+        }
+
+        public int CurrentPage_Other
+        {
+            get { return (int)(ViewState["CurrentPage_Other"] ?? 0); }
+            set { ViewState["CurrentPage_Other"] = value; }
+        }
+
+        private string SearchTerm_Other
+        {
+            get { return ViewState["SearchTerm_Other"] as string ?? string.Empty; }
+            set { ViewState["SearchTerm_Other"] = value; }
+        }
+
+        public int PageSize_Other_Setting
+        {
+            get { return (int)(ViewState["PageSize_Other_Setting"] ?? 12); }
+            set { ViewState["PageSize_Other_Setting"] = value; }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -40,9 +65,24 @@ namespace aspnet
                     return;
                 }
 
+                // 初始化 PageSize DropDownList
+                ddlPageSizeOther.SelectedValue = PageSize_Other_Setting.ToString();
+
                 BindCategories();
                 pnlCategoryBooks.Visible = false;
+                UpdateCategoryPanelsVisibility();
             }
+            else if (pnlOtherCategories.Visible)
+            {
+                txtSearchOther.Text = SearchTerm_Other;
+            }
+        }
+
+        private void UpdateCategoryPanelsVisibility()
+        {
+            pnlChineseClassification.Visible = IsChineseClassificationMode;
+            pnlOtherCategories.Visible = !IsChineseClassificationMode;
+            btnToggleMode.Text = IsChineseClassificationMode ? "切換至：其他類別" : "切換至：中文圖書分類";
         }
 
         private void BindCategories()
@@ -66,14 +106,162 @@ namespace aspnet
                     DataTable dt = new DataTable();
                     da.Fill(dt);
 
-                    rptCategories.DataSource = dt;
-                    rptCategories.DataBind();
+                    var chineseCategories = GetChineseClassificationCategories(dt);
+                    rptChineseClassification.DataSource = chineseCategories;
+                    rptChineseClassification.DataBind();
+
+                    BindOtherCategories(dt);
                 }
             }
             catch (Exception ex)
             {
                 ShowMessage($"載入類別時發生錯誤：{ex.Message}", "error");
             }
+        }
+
+        private List<ChineseMainCategory> GetChineseClassificationCategories(DataTable allCategories)
+        {
+            var tdcMappings = new List<ChineseMainCategory>
+            {
+                new ChineseMainCategory { MainCategoryName = "000 總類", Prefix = "0" },
+                new ChineseMainCategory { MainCategoryName = "100 哲學類", Prefix = "1" },
+                new ChineseMainCategory { MainCategoryName = "200 宗教類", Prefix = "2" },
+                new ChineseMainCategory { MainCategoryName = "300 科學類", Prefix = "3" },
+                new ChineseMainCategory { MainCategoryName = "400 應用科學類", Prefix = "4" },
+                new ChineseMainCategory { MainCategoryName = "500 社會科學類", Prefix = "5" },
+                new ChineseMainCategory { MainCategoryName = "600 史地類 (含 700)", Prefix = "6|7" },
+                new ChineseMainCategory { MainCategoryName = "800 語言文學類", Prefix = "8" },
+                new ChineseMainCategory { MainCategoryName = "900 藝術類", Prefix = "9" }
+            };
+
+            var allList = allCategories.AsEnumerable()
+                .Select(row => new
+                {
+                    CategoryID = row.Field<long>("CategoryID"),
+                    CategoryName = row.Field<string>("CategoryName"),
+                    ColorHex = row.Field<string>("ColorHex"),
+                    BookCount = row.Field<long>("BookCount")
+                }).ToList();
+
+            foreach (var mainCat in tdcMappings)
+            {
+                string[] prefixes = mainCat.Prefix.Split('|');
+
+                mainCat.SubCategories = allList
+                    .Where(c => prefixes.Any(p => c.CategoryName.StartsWith(p) && c.CategoryName.Length >= 3 && Char.IsDigit(c.CategoryName[1]) && Char.IsDigit(c.CategoryName[2]) && c.CategoryName.Contains(' ')))
+                    .Select(c => new ChineseSubCategory
+                    {
+                        CategoryID = (int)c.CategoryID,
+                        CategoryName = c.CategoryName,
+                        ColorHex = c.ColorHex,
+                        BookCount = (int)c.BookCount
+                    })
+                    .OrderBy(c => c.CategoryName)
+                    .ToList();
+            }
+
+            return tdcMappings.Where(mc => mc.SubCategories.Any()).ToList();
+        }
+
+        private DataTable GetOtherCategoriesData(DataTable allCategories)
+        {
+            var tdcPrefixes = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            string searchTerm = SearchTerm_Other;
+
+            var filteredCategories = allCategories.AsEnumerable()
+                .Where(row =>
+                {
+                    string catName = row.Field<string>("CategoryName");
+                    // 1. 判斷是否為中文圖書分類 (TDC)
+                    bool isTDC = tdcPrefixes.Any(p => catName.StartsWith(p) && catName.Length >= 3 && Char.IsDigit(catName[1]) && Char.IsDigit(catName[2]) && catName.Contains(' '));
+
+                    // 2. 判斷是否符合搜尋詞
+                    bool matchesSearch = string.IsNullOrEmpty(searchTerm) || catName.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                    return !isTDC && matchesSearch;
+                });
+
+            if (filteredCategories.Any())
+            {
+                return filteredCategories.CopyToDataTable();
+            }
+            return allCategories.Clone();
+        }
+
+        private void BindOtherCategories(DataTable allCategories)
+        {
+            DataTable dtOtherCategories = GetOtherCategoriesData(allCategories);
+
+            PagedDataSource pds = new PagedDataSource();
+            pds.DataSource = dtOtherCategories.DefaultView;
+            pds.AllowPaging = true;
+            pds.PageSize = PageSize_Other_Setting;
+            pds.CurrentPageIndex = CurrentPage_Other;
+
+            rptOtherCategories.DataSource = pds;
+            rptOtherCategories.DataBind();
+
+            // 設定 DropDownList 的選定值
+            ListItem selectedItem = ddlPageSizeOther.Items.FindByValue(PageSize_Other_Setting.ToString());
+            if (selectedItem != null)
+            {
+                ddlPageSizeOther.ClearSelection();
+                selectedItem.Selected = true;
+            }
+
+            BindOtherCategoriesPager(pds.PageCount);
+        }
+
+        private void BindOtherCategoriesPager(int pageCount)
+        {
+            List<ListItem> pages = new List<ListItem>();
+            if (pageCount > 1)
+            {
+                for (int i = 0; i < pageCount; i++)
+                {
+                    pages.Add(new ListItem((i + 1).ToString(), (i + 1).ToString()));
+                }
+            }
+
+            rptPagerOther.DataSource = pages;
+            rptPagerOther.DataBind();
+        }
+
+        protected void ddlPageSizeOther_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DropDownList ddl = (DropDownList)sender;
+            PageSize_Other_Setting = int.Parse(ddl.SelectedValue);
+            CurrentPage_Other = 0;
+            BindCategories();
+            UpdateCategoryPanelsVisibility();
+        }
+
+        protected void btnSearchOther_Click(object sender, EventArgs e)
+        {
+            CurrentPage_Other = 0;
+            SearchTerm_Other = txtSearchOther.Text.Trim();
+            BindCategories();
+            UpdateCategoryPanelsVisibility();
+        }
+
+        protected void lnkPageOther_Click(object sender, EventArgs e)
+        {
+            LinkButton lnk = (LinkButton)sender;
+            int pageIndex = int.Parse(lnk.CommandArgument) - 1;
+
+            CurrentPage_Other = pageIndex;
+            BindCategories();
+            UpdateCategoryPanelsVisibility();
+        }
+
+        protected void rptChineseClassification_ItemCommand(object source, RepeaterCommandEventArgs e)
+        {
+            rptCategories_ItemCommand(source, e);
+        }
+
+        protected void rptOtherCategories_ItemCommand(object source, RepeaterCommandEventArgs e)
+        {
+            rptCategories_ItemCommand(source, e);
         }
 
         protected void rptCategories_ItemCommand(object source, RepeaterCommandEventArgs e)
@@ -153,7 +341,7 @@ namespace aspnet
                     rptCategoryBooks.DataBind();
 
                     pnlCategoryBooks.Visible = true;
-                    pnlCategories.Visible = false;
+                    pnlCategoriesContainer.Visible = false;
 
                     ShowMessage($"類別 '{SelectedCategoryName}' 下共有 {dt.Rows.Count} 筆書籍記錄。", "success");
                 }
@@ -170,9 +358,18 @@ namespace aspnet
             SelectedCategoryID = 0;
             SelectedCategoryName = "所有類別";
             pnlCategoryBooks.Visible = false;
-            pnlCategories.Visible = true;
+            pnlCategoriesContainer.Visible = true;
             BindCategories();
+            UpdateCategoryPanelsVisibility();
             ShowMessage("已返回類別列表。", "info");
+        }
+
+        protected void btnToggleMode_Click(object sender, EventArgs e)
+        {
+            IsChineseClassificationMode = !IsChineseClassificationMode;
+            UpdateCategoryPanelsVisibility();
+            ShowMessage(IsChineseClassificationMode ? "已切換至「中文圖書分類」模式。" : "已切換至「其他類別」模式。", "info");
+            BindCategories();
         }
 
         private void ShowMessage(string message, string type)
@@ -195,5 +392,20 @@ namespace aspnet
                 pnlMessage.CssClass += " message-box-info";
             }
         }
+    }
+
+    public class ChineseMainCategory
+    {
+        public string MainCategoryName { get; set; }
+        public string Prefix { get; set; }
+        public List<ChineseSubCategory> SubCategories { get; set; } = new List<ChineseSubCategory>();
+    }
+
+    public class ChineseSubCategory
+    {
+        public int CategoryID { get; set; }
+        public string CategoryName { get; set; }
+        public string ColorHex { get; set; }
+        public int BookCount { get; set; }
     }
 }

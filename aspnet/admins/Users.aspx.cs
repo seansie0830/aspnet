@@ -297,9 +297,20 @@ namespace aspnet
             int newIsAdmin = Convert.ToInt32(ddlIsAdminEdit?.SelectedValue);
 
             // 獲取原始資料以進行比較
-            DataRowView originalData = ((DataRowView)((GridView)sender).Rows[e.RowIndex].DataItem);
-            string originalUsername = originalData["Username"].ToString();
-            int originalIsAdmin = Convert.ToInt32(originalData["IsAdmin"]);
+            // START OF FIX: 使用 GetUserById 從資料庫重新獲取原始資料 (更安全)
+            var originalUser = GetUserById(rowUserID);
+            string originalUsername = originalUser.Username;
+            int originalIsAdmin = originalUser.IsAdmin;
+
+            // 安全防護：如果資料庫中找不到原始記錄，則終止操作
+            if (originalUsername == null)
+            {
+                ShowMessage("更新失敗：無法找到原始用戶記錄，可能已被其他用戶刪除。", "error");
+                gvUsers.EditIndex = -1;
+                BindUsersData();
+                return;
+            }
+            // END OF FIX
 
             // 工作人員 (IsAdmin=2) 限制: 禁止修改管理員 (IsAdmin=1) 的帳號
             if (currentAdminLevel == 2 && originalIsAdmin == 1)
