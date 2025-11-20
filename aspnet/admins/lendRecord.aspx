@@ -237,12 +237,7 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <div class="admin-container">
         <h1 class="page-header">借閱記錄管理 (LendRecords)</h1>
-        <div class="admin-nav">
-            <a href="/admins/AdminPage.aspx">Users</a>
-            <a href="/admins/Books.aspx">Books</a>
-            <a href="/admins/Categories.aspx">Categories</a>
-            <a href="/admins/LendRecord.aspx" class="active">LendRecords</a>
-        </div>
+
 
         
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" CssClass="message-box" role="alert">

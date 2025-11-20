@@ -179,14 +179,8 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <div class="admin-container">
         <h1 class="page-header">👤 使用者帳號管理 (Users)</h1>
-        <p style="color: #721c24; margin-bottom: 15px; font-weight: bold;">警告：此區域允許操作系統使用者資料，請謹慎使用。IsAdmin 0=普通用戶, 1=管理員, 2=工作人員。</p>
 
-        <div class="nav-link-group">
-            <a href="/admins/Category.aspx">類別管理</a>
-            <a href="/admins/LendRecord.aspx">借閱記錄</a>
-            <a href="/admins/Books.aspx">書籍管理</a>
-            <a href="/admins/Users.aspx" class="active">使用者帳號</a>
-        </div>
+
 
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" 
             CssClass="message-box" role="alert">

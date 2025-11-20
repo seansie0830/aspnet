@@ -194,13 +194,7 @@
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <div class="admin-container">
         <h1 class="page-header">郵件佇列管理 (Mail Queue)</h1>
-        <div class="admin-nav">
-            <a href="/admins/AdminPage.aspx">Users</a>
-            <a href="/admins/Books.aspx">Books</a>
-            <a href="/admins/Categories.aspx">Categories</a>
-            <a href="/admins/LendRecord.aspx">LendRecords</a>
-            <a href="/admins/mailQueue.aspx" class="active">Mail Queue</a>
-        </div>
+
 
         
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" CssClass="message-box" role="alert">
@@ -250,15 +244,6 @@
             </Columns>
         </asp:GridView>
 
-
-        <%-- SECTION 2: 其他異常提醒 (Placeholder) --%>
-        <h2 class="section-header">🚨 其他異常提醒郵件 (例如：書籍損壞)</h2>
-        <div class="reminder-placeholder">
-            <p style="font-size: 1.2em;">**此處為其他類型提醒郵件佇列的 Placeholder**</p>
-            <p>例如：書籍損壞通知、罰款通知等。</p>
-            <p>郵件類型：<asp:DropDownList ID="ddlExceptionType" runat="server" style="margin: 0 5px;"><asp:ListItem Text="損壞通知" Value="Damage"></asp:ListItem><asp:ListItem Text="罰款通知" Value="Fine"></asp:ListItem></asp:DropDownList></p>
-            <asp:Button ID="btnShowExceptionQueue" runat="server" Text="查看異常清單 (待實作)" CssClass="btn-action" />
-        </div>
 
     </div>
 </asp:Content>

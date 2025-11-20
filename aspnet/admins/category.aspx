@@ -195,12 +195,7 @@
     <div class="admin-container">
         <h1 class="page-header">圖書館管理員專區 - 📚 書籍類別 (Categories) 管理</h1>
 
-        <div class="nav-links">
-            <a href="/admins/Categories.aspx" class="active">Categories</a>
-            <a href="/admins/LendRecords.aspx">LendRecords</a>
-            <a href="/admins/Books.aspx">Books</a>
-            <a href="/admins/Users.aspx">Users</a>
-        </div>
+
         <hr />
 
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" 
