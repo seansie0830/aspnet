@@ -37,8 +37,9 @@
 
         .form-group input[type="text"],
         .form-group input[type="password"],
-        .form-group input[type="email"] { 
-            width: 100% !important; 
+        .form-group input[type="email"],
+        .form-group input[type="number"] { /* 支援 TextMode="Number" (如果使用) */
+            width: 100% !important;
             display: block; 
             
             padding: 10px 15px;
@@ -50,7 +51,8 @@
 
         .form-group input[type="text"]:focus,
         .form-group input[type="password"]:focus,
-        .form-group input[type="email"]:focus {
+        .form-group input[type="email"]:focus,
+        .form-group input[type="number"]:focus {
             border-color: #5cb85c;
             outline: none;
         }
@@ -95,11 +97,12 @@
     <asp:Panel ID="pnlEmailInput" runat="server">
         <div class="form-group">
             <label for="<%= txtEmail.ClientID %>">請輸入註冊信箱：</label>
-            <asp:TextBox ID="txtEmail" runat="server" Width="100%" TextMode="Email"></asp:TextBox>
+            <asp:TextBox ID="txtEmail" runat="server" Width="100%" TextMode="Email" autocomplete="username"></asp:TextBox>
         </div>
 
         <div class="form-group">
-            <asp:Button ID="btnReset" runat="server" Text="發送重設連結" OnClick="btnReset_Click" />
+            <asp:Button ID="btnReset" runat="server" Text="發送重設連結" 
+            OnClick="btnReset_Click" />
         </div>
     </asp:Panel>
 
@@ -108,17 +111,17 @@
         
         <div class="form-group">
             <label for="<%= txtCode.ClientID %>">驗證碼：</label>
-            <asp:TextBox ID="txtCode" runat="server" Width="100%" MaxLength="6"></asp:TextBox>
+            <asp:TextBox ID="txtCode" runat="server" Width="100%" MaxLength="6" autocomplete="off"></asp:TextBox>
         </div>
 
         <div class="form-group">
             <label for="<%= txtNewPassword.ClientID %>">新密碼：</label>
-            <asp:TextBox ID="txtNewPassword" runat="server" Width="100%" TextMode="Password"></asp:TextBox>
+            <asp:TextBox ID="txtNewPassword" runat="server" Width="100%" TextMode="Password" autocomplete="new-password"></asp:TextBox>
         </div>
 
         <div class="form-group">
             <label for="<%= txtConfirmPassword.ClientID %>">確認新密碼：</label>
-            <asp:TextBox ID="txtConfirmPassword" runat="server" Width="100%" TextMode="Password"></asp:TextBox>
+            <asp:TextBox ID="txtConfirmPassword" runat="server" Width="100%" TextMode="Password" autocomplete="new-password"></asp:TextBox>
         </div>
 
         <div class="form-group">
