@@ -174,7 +174,7 @@
             <div class="dashboard-card card-category">
                 <h3>類別管理</h3>
                 <p>定義書籍分類，方便組織和搜尋。</p>
-                <a href="/admins/Categories.aspx">進入管理頁面</a>
+                <a href="/admins/Category.aspx">進入管理頁面</a>
             </div>
 
             <div class="dashboard-card card-records">

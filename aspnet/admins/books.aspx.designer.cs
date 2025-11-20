@@ -15,6 +15,15 @@ namespace aspnet
     {
 
         /// <summary>
+        /// form1 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlForm form1;
+
+        /// <summary>
         /// pnlMessage control.
         /// </summary>
         /// <remarks>
@@ -33,15 +42,6 @@ namespace aspnet
         protected global::System.Web.UI.WebControls.Label lblMessage;
 
         /// <summary>
-        /// pnlSearch control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel pnlSearch;
-
-        /// <summary>
         /// ddlSearchColumn control.
         /// </summary>
         /// <remarks>
@@ -51,13 +51,13 @@ namespace aspnet
         protected global::System.Web.UI.WebControls.DropDownList ddlSearchColumn;
 
         /// <summary>
-        /// txtSearchKeyword control.
+        /// txtSearch control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtSearchKeyword;
+        protected global::System.Web.UI.WebControls.TextBox txtSearch;
 
         /// <summary>
         /// btnSearch control.
@@ -76,114 +76,6 @@ namespace aspnet
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnClearSearch;
-
-        /// <summary>
-        /// ddlPageSize control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ddlPageSize;
-
-        /// <summary>
-        /// btnShowInsert control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnShowInsert;
-
-        /// <summary>
-        /// pnlInsertForm control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Panel pnlInsertForm;
-
-        /// <summary>
-        /// litInsertHeader control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Literal litInsertHeader;
-
-        /// <summary>
-        /// phInsertFormControls control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.PlaceHolder phInsertFormControls;
-
-        /// <summary>
-        /// txtInsert_Title control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtInsert_Title;
-
-        /// <summary>
-        /// txtInsert_Author control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtInsert_Author;
-
-        /// <summary>
-        /// txtInsert_ISBN control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtInsert_ISBN;
-
-        /// <summary>
-        /// txtInsert_TotalCopies control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtInsert_TotalCopies;
-
-        /// <summary>
-        /// txtInsert_AvailableCopies control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtInsert_AvailableCopies;
-
-        /// <summary>
-        /// btnCancelInsert control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnCancelInsert;
-
-        /// <summary>
-        /// btnInsertRecord control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnInsertRecord;
 
         /// <summary>
         /// gvBooks control.

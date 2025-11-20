@@ -1,293 +1,301 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="books.aspx.cs" MasterPageFile="~/Site.Master" Inherits="aspnet.books" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="books.aspx.cs" Inherits="aspnet.books" %>
 
-<asp:Content ID="HeadContent" ContentPlaceHolderID="HeadContent" runat="server">
-    <%-- 沿用 AdminPage.aspx 提供的 CSS 樣式 --%>
-    <style type="text/css">
-        .admin-container {
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>書籍管理</title>
+    <style>
+        /* 繼承自其他檔案的通用樣式應在此處引用或定義 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+
+        .container {
             max-width: 1200px;
             margin: 20px auto;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            font-family: Arial, sans-serif;
         }
 
-        .page-header {
-            color: #dc3545;
-            font-size: 24px;
-            font-weight: bold;
-            border-bottom: 3px solid #dc3545;
-            padding-bottom: 10px;
+        /* --------------------------------- */
+        /* 綠色系麵包屑導覽列 CSS (Breadcrumb) */
+        /* --------------------------------- */
+        .breadcrumb {
+            padding: 10px 0;
             margin-bottom: 20px;
-        }
-        
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 20px;
+            list-style: none;
+            background-color: transparent;
+            border-bottom: 1px solid #e0e0e0;
         }
 
-        .btn-new-record {
-            background-color: #28a745;
-            color: white;
+        .breadcrumb > li {
+            display: inline-block;
+        }
+
+        .breadcrumb > li + li:before {
+            padding: 0 8px;
+            color: #ccc;
+            content: "〉"; /* 使用全形或半形分隔符 */
+        }
+
+        .breadcrumb > .active {
+            color: #10B981; /* 綠色系的亮點 */
             font-weight: bold;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-left: 20px;
-        }
-        .btn-new-record:hover {
-            background-color: #218838;
         }
 
-        .insert-form-panel {
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 6px;
-            background-color: #f8f9fa; 
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-        .insert-form-header {
-            background-color: #007bff;
-            color: white;
-            padding: 10px;
-            font-size: 1.1em;
-            text-align: left;
-        }
-        .insert-form-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0 10px;
-        }
-        .insert-form-table td {
-            padding: 5px 0;
-        }
-        .insert-form-table td:first-child {
-            width: 150px;
-            font-weight: bold;
-            text-align: right;
-            padding-right: 15px;
-        }
-        .input-insert-form {
-            border: 1px solid #ced4da;
-            padding: 8px;
-            border-radius: 4px;
-            width: 90%;
-            box-sizing: border-box;
-        }
-        
-        .form-actions {
-            margin-top: 15px;
-            text-align: right;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-        .btn-submit {
-            background-color: #28a745;
-            margin-left: 10px;
-        }
-        .btn-submit:hover {
-            background-color: #218838;
-        }
-        .btn-cancel {
-            background-color: #dc3545;
-        }
-        .btn-cancel:hover {
-            background-color: #c82333;
+        .breadcrumb a {
+            color: #059669; /* 較深的綠色連結 */
+            text-decoration: none;
+            transition: color 0.2s;
         }
 
-        /* GridView 樣式 (gv-style) */
-        .gv-style table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .gv-style th {
-            background-color: #dc3545;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #c82333;
-            cursor: pointer; /* 新增：排序指示 */
-        }
-        .gv-style td {
-            padding: 10px;
-            border: 1px solid #ddd;
-        }
-        .gv-style tr:nth-child(even) td {
-            background-color: #f8f8f8;
-        }
-        .gv-style tr:hover td {
-            background-color: #ffeaea;
-        }
-        
-        .gv-style input[type="text"] {
-            border: 1px solid #ccc;
-            padding: 4px;
-            border-radius: 4px;
-            width: 90%;
+        .breadcrumb a:hover {
+            color: #047857; /* 鼠標懸停時更深的綠色 */
         }
 
-        .btn-action {
-            background-color: #6c757d;
-            color: white;
-            font-weight: bold;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .btn-action:hover {
-            background-color: #5a6268;
-        }
-
+        /* 訊息框樣式 (沿用 .cs 檔案中的類別) */
         .message-box {
             padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             border: 1px solid transparent;
+            border-radius: 4px;
+            font-weight: bold;
         }
+
         .message-box-error {
+            color: #721c24;
             background-color: #f8d7da;
             border-color: #f5c6cb;
-            color: #721c24;
         }
+
         .message-box-success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
+            color: #0f5132;
+            background-color: #d1e7dd;
+            border-color: #badbcc;
         }
-        .message-box-info {
-            background-color: #cce5ff;
-            border-color: #b8daff;
-            color: #004085;
-        }
-        /* 搜尋樣式 */
-        .search-container {
+        
+        .header-section {
             display: flex;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-panel {
+            display: flex;
             gap: 10px;
+            align-items: center;
         }
-        .search-input {
-            padding: 8px;
-            border: 1px solid #ccc;
+        
+        /* GridView 基礎樣式 */
+        .gridview {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .gridview th {
+            background-color: #D1FAE5; /* 綠色系的表頭 */
+            color: #047857;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #E5E7EB;
+            cursor: pointer;
+        }
+
+        .gridview td {
+            padding: 10px 12px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .gridview tr:nth-child(even) {
+            background-color: #F9FAFB;
+        }
+        
+        .gridview tr:hover {
+            background-color: #F0FDF4;
+        }
+
+        .gridview a {
+            color: #059669;
+            text-decoration: none;
+        }
+        
+        .gridview input[type="text"] {
+            padding: 5px;
+            border: 1px solid #D1D5DB;
             border-radius: 4px;
-            width: 250px;
         }
-        .search-btn {
-            background-color: #007bff;
-            color: white;
-            padding: 8px 16px;
+        
+        .gridview .edit-button, .gridview .delete-button, .gridview .update-button, .gridview .cancel-button {
+            padding: 5px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            margin-right: 5px;
+            transition: background-color 0.2s;
         }
-        .search-btn:hover {
-            background-color: #0056b3;
+
+        .gridview .edit-button { background-color: #6EE7B7; color: #065F46; }
+        .gridview .edit-button:hover { background-color: #34D399; }
+
+        .gridview .delete-button { background-color: #FECACA; color: #B91C1C; }
+        .gridview .delete-button:hover { background-color: #FCA5A5; }
+
+        .gridview .update-button { background-color: #A7F3D0; color: #065F46; }
+        .gridview .update-button:hover { background-color: #6EE7B7; }
+        
+        .gridview .cancel-button { background-color: #D1D5DB; color: #374151; }
+        .gridview .cancel-button:hover { background-color: #9CA3AF; }
+
+        /* 分頁樣式 */
+        .pager-row td {
+            background-color: #E5F3F6;
+            text-align: right;
+            padding: 10px;
         }
+        .pager-row a, .pager-row span {
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #D1D5DB;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #059669;
+        }
+        .pager-row span {
+            font-weight: bold;
+            background-color: #059669;
+            color: white;
+            border-color: #059669;
+        }
+        
+        .search-panel input[type="text"], .search-panel select {
+            padding: 8px;
+            border: 1px solid #D1D5DB;
+            border-radius: 4px;
+        }
+
+        .search-panel .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .search-panel .btn-primary {
+            background-color: #059669; /* 綠色 */
+            color: white;
+        }
+        .search-panel .btn-primary:hover {
+            background-color: #047857;
+        }
+
+        .search-panel .btn-secondary {
+            background-color: #D1FAE5; /* 淺綠色 */
+            color: #047857;
+        }
+        .search-panel .btn-secondary:hover {
+            background-color: #A7F3D0;
+        }
+
     </style>
-</asp:Content>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div class="container">
+            
+            <!-- 舊的導覽列已被移除 -->
 
+            <!-- 新的麵包屑導覽列 -->
+            <ol class="breadcrumb">
+                <li><a href="main.aspx">管理員</a></li>
+                <li class="active">書籍管理</li>
+            </ol>
+            
+            <h1 style="color: #047857; border-bottom: 2px solid #34D399; padding-bottom: 5px;">書籍管理</h1>
 
-<asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
-    <div class="admin-container">
-        <h1 class="page-header">圖書館管理員專區 - 書籍管理 (Books)</h1>
-        
-        <asp:Panel ID="pnlMessage" runat="server" Visible="false" CssClass="message-box" role="alert">
-            <asp:Label ID="lblMessage" runat="server" style="font-weight: bold;"></asp:Label>
-        </asp:Panel>
-        
-        <div class="control-row">
-            <%-- 搜尋控制項 --%>
-            <asp:Panel ID="pnlSearch" runat="server" CssClass="search-container">
-                <asp:DropDownList ID="ddlSearchColumn" runat="server" CssClass="search-input" Width="100px">
-                    <asp:ListItem Value="Title" Text="書名"></asp:ListItem>
-                    <asp:ListItem Value="Author" Text="作者"></asp:ListItem>
-                    <asp:ListItem Value="ISBN" Text="ISBN"></asp:ListItem>
-                </asp:DropDownList>
-                <asp:TextBox ID="txtSearchKeyword" runat="server" CssClass="search-input" Placeholder="輸入關鍵字..."></asp:TextBox>
-                <asp:Button ID="btnSearch" runat="server" Text="🔍 搜尋" OnClick="btnSearch_Click" CssClass="search-btn" />
-                <asp:Button ID="btnClearSearch" runat="server" Text="清除搜尋" OnClick="btnClearSearch_Click" CssClass="btn-action" />
+            <!-- 訊息面板 -->
+            <asp:Panel ID="pnlMessage" runat="server" Visible="false" CssClass="message-box">
+                <asp:Label ID="lblMessage" runat="server"></asp:Label>
             </asp:Panel>
             
-            <%-- 每頁筆數選擇與新增按鈕 --%>
-            <asp:Label runat="server" Text="每頁筆數:"></asp:Label>
-            <asp:DropDownList ID="ddlPageSize" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlPageSize_SelectedIndexChanged" 
-                style="padding: 5px; border: 1px solid #ccc; border-radius: 4px;">
-                <asp:ListItem Value="10" Text="10"></asp:ListItem>
-                <asp:ListItem Value="15" Text="15" Selected="True"></asp:ListItem>
-                <asp:ListItem Value="20" Text="20"></asp:ListItem>
-                <asp:ListItem Value="50" Text="50"></asp:ListItem>
-            </asp:DropDownList>
-            
-            <asp:Button ID="btnShowInsert" runat="server" Text="✚ 新增書籍" OnClick="btnShowInsert_Click" CssClass="btn-new-record" />
-        </div>
-
-        <asp:Panel ID="pnlInsertForm" runat="server" Visible="False" CssClass="insert-form-panel">
-            <asp:Literal ID="litInsertHeader" runat="server"></asp:Literal>
-            <asp:PlaceHolder ID="phInsertFormControls" runat="server">
-                <table class="insert-form-table">
-                    <tr>
-                        <td>書名 (Title):</td>
-                        <td><asp:TextBox ID="txtInsert_Title" runat="server" CssClass="input-insert-form" MaxLength="200" ToolTip="必填欄位"></asp:TextBox></td>
-                    </tr>
-                    <tr>
-                        <td>作者 (Author):</td>
-                        <td><asp:TextBox ID="txtInsert_Author" runat="server" CssClass="input-insert-form" MaxLength="100"></asp:TextBox></td>
-                    </tr>
-                    <tr>
-                        <td>ISBN:</td>
-                        <td><asp:TextBox ID="txtInsert_ISBN" runat="server" CssClass="input-insert-form" MaxLength="20" ToolTip="必須是唯一值"></asp:TextBox></td>
-                    </tr>
-                    <tr>
-                        <td>總本數 (TotalCopies):</td>
-                        <td><asp:TextBox ID="txtInsert_TotalCopies" runat="server" CssClass="input-insert-form" TextMode="Number" Text="1" ToolTip="必須是正整數"></asp:TextBox></td>
-                    </tr>
-                    <tr>
-                        <td>可借閱本數 (AvailableCopies):</td>
-                        <td><asp:TextBox ID="txtInsert_AvailableCopies" runat="server" CssClass="input-insert-form" TextMode="Number" Text="1" ToolTip="必須是正整數，且不能大於總本數"></asp:TextBox></td>
-                    </tr>
-                </table>
-            </asp:PlaceHolder>
-            
-            <div class="form-actions">
-                <asp:Button ID="btnCancelInsert" runat="server" Text="取消新增" OnClick="btnCancelInsert_Click" CssClass="btn-action btn-cancel" />
-                <asp:Button ID="btnInsertRecord" runat="server" Text="確認新增並儲存" OnClick="btnInsertRecord_Click" CssClass="btn-action btn-submit" />
+            <div class="header-section">
+                <!-- 搜尋面板 -->
+                <div class="search-panel">
+                    <asp:DropDownList ID="ddlSearchColumn" runat="server">
+                        <asp:ListItem Value="Title">書名</asp:ListItem>
+                        <asp:ListItem Value="Author">作者</asp:ListItem>
+                        <asp:ListItem Value="ISBN">ISBN</asp:ListItem>
+                    </asp:DropDownList>
+                    <asp:TextBox ID="txtSearch" runat="server" placeholder="輸入關鍵字"></asp:TextBox>
+                    <asp:Button ID="btnSearch" runat="server" Text="搜尋" OnClick="btnSearch_Click" CssClass="btn btn-primary" />
+                    <asp:Button ID="btnClearSearch" runat="server" Text="清除搜尋" OnClick="btnClearSearch_Click" CssClass="btn btn-secondary" />
+                </div>
+                
+                <!-- 假設新增書籍按鈕 (如果您的應用程式需要) -->
+                <%-- <asp:Button ID="btnAddBook" runat="server" Text="新增書籍" CssClass="btn btn-primary" /> --%>
             </div>
-        </asp:Panel>
 
-        <asp:GridView ID="gvBooks" runat="server" 
-            AutoGenerateColumns="False" 
-            DataKeyNames="BookID" 
-            CssClass="gv-style" 
-            AllowPaging="True" 
-            PageSize="15"
-            AllowSorting="True"
-            ShowFooter="False" 
-            OnPageIndexChanging="gvBooks_PageIndexChanging"
-            OnSorting="gvBooks_Sorting"
-            OnRowEditing="gvBooks_RowEditing"
-            OnRowCancelingEdit="gvBooks_RowCancelingEdit"
-            OnRowUpdating="gvBooks_RowUpdating"
-            OnRowDeleting="gvBooks_RowDeleting"
-            OnRowDataBound="gvBooks_RowDataBound">
-            
-            <Columns>
-                <asp:BoundField DataField="BookID" HeaderText="ID" ReadOnly="True" SortExpression="BookID" />
-                <asp:BoundField DataField="Title" HeaderText="書名" SortExpression="Title" />
-                <asp:BoundField DataField="Author" HeaderText="作者" SortExpression="Author" />
-                <asp:BoundField DataField="ISBN" HeaderText="ISBN" SortExpression="ISBN" />
-                <asp:BoundField DataField="TotalCopies" HeaderText="總本數" SortExpression="TotalCopies" />
-                <asp:BoundField DataField="AvailableCopies" HeaderText="可借數" SortExpression="AvailableCopies" />
-                <asp:CommandField ShowEditButton="True" EditText="編輯" UpdateText="更新" CancelText="取消" />
-                <asp:CommandField ShowDeleteButton="True" DeleteText="刪除" />
-            </Columns>
-        </asp:GridView>
-    </div>
-</asp:Content>
+            <!-- GridView -->
+            <asp:GridView ID="gvBooks" runat="server" 
+                AutoGenerateColumns="false" 
+                DataKeyNames="BookID" 
+                AllowPaging="true" 
+                PageSize="10" 
+                AllowSorting="true"
+                OnPageIndexChanging="gvBooks_PageIndexChanging" 
+                OnSorting="gvBooks_Sorting"
+                OnRowEditing="gvBooks_RowEditing"
+                OnRowCancelingEdit="gvBooks_RowCancelingEdit"
+                OnRowUpdating="gvBooks_RowUpdating"
+                OnRowDeleting="gvBooks_RowDeleting"
+                OnRowDataBound="gvBooks_RowDataBound"
+                CssClass="gridview"
+                PagerStyle-CssClass="pager-row">
+                <Columns>
+                    <asp:BoundField DataField="BookID" HeaderText="ID" SortExpression="BookID" ReadOnly="true" />
+                    <asp:BoundField DataField="Title" HeaderText="書名" SortExpression="Title" />
+                    <asp:BoundField DataField="Author" HeaderText="作者" SortExpression="Author" />
+                    <asp:BoundField DataField="ISBN" HeaderText="ISBN" SortExpression="ISBN" />
+                    <asp:TemplateField HeaderText="總本數" SortExpression="TotalCopies">
+                        <ItemTemplate>
+                            <asp:Label ID="lblTotalCopies" runat="server" Text='<%# Eval("TotalCopies") %>'></asp:Label>
+                        </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtTotalCopies" runat="server" Text='<%# Bind("TotalCopies") %>' Width="50px"></asp:TextBox>
+                        </EditItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="可借數" SortExpression="AvailableCopies">
+                        <ItemTemplate>
+                            <asp:Label ID="lblAvailableCopies" runat="server" Text='<%# Eval("AvailableCopies") %>'></asp:Label>
+                        </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:TextBox ID="txtAvailableCopies" runat="server" Text='<%# Bind("AvailableCopies") %>' Width="50px"></asp:TextBox>
+                        </EditItemTemplate>
+                    </asp:TemplateField>
+                    <asp:TemplateField HeaderText="操作">
+                        <ItemTemplate>
+                            <asp:Button ID="btnEdit" runat="server" CommandName="Edit" Text="編輯" CssClass="edit-button" />
+                            <asp:Button ID="btnDelete" runat="server" CommandName="Delete" Text="刪除" CssClass="delete-button" OnClientClick="return confirm('確定要刪除這本書籍嗎?');" />
+                        </ItemTemplate>
+                        <EditItemTemplate>
+                            <asp:Button ID="btnUpdate" runat="server" CommandName="Update" Text="更新" CssClass="update-button" />
+                            <asp:Button ID="btnCancel" runat="server" CommandName="Cancel" Text="取消" CssClass="cancel-button" />
+                        </EditItemTemplate>
+                    </asp:TemplateField>
+                </Columns>
+            </asp:GridView>
+
+        </div>
+    </form>
+</body>
+</html>
