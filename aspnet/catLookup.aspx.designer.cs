@@ -159,6 +159,33 @@ namespace aspnet
         protected global::System.Web.UI.WebControls.Button btnBackToCategories;
 
         /// <summary>
+        /// lblBookCount control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblBookCount;
+
+        /// <summary>
+        /// ddlSortBy control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ddlSortBy;
+
+        /// <summary>
+        /// ddlPageSizeBooks control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ddlPageSizeBooks;
+
+        /// <summary>
         /// rptCategoryBooks control.
         /// </summary>
         /// <remarks>
@@ -166,5 +193,23 @@ namespace aspnet
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Repeater rptCategoryBooks;
+
+        /// <summary>
+        /// pnlPaginationBooks control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Panel pnlPaginationBooks;
+
+        /// <summary>
+        /// rptPagerBooks control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Repeater rptPagerBooks;
     }
 }

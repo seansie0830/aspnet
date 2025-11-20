@@ -13,70 +13,125 @@ namespace aspnet
     public partial class catLookup : Page
     {
         private const string ConnectionStringName = "LibraryDBConnection";
+        private const int DefaultPageSize = 12;
 
         private string GetConnectionString()
         {
             return ConfigurationManager.ConnectionStrings[ConnectionStringName].ConnectionString;
         }
 
+        // --- 狀態屬性 (從 Query String 讀取/設定) ---
+
         private int SelectedCategoryID
         {
-            get { return (int)(ViewState["SelectedCategoryID"] ?? 0); }
-            set { ViewState["SelectedCategoryID"] = value; }
+            get
+            {
+                if (int.TryParse(Request.QueryString["cid"], out int id))
+                {
+                    return id;
+                }
+                return 0;
+            }
         }
 
-        private string SelectedCategoryName
+        private string CurrentSort
         {
-            get { return ViewState["SelectedCategoryName"] as string ?? "所有類別"; }
-            set { ViewState["SelectedCategoryName"] = value; }
+            get { return Request.QueryString["sort"] ?? "Title"; }
+        }
+
+        // 將 CurrentPage 屬性設為 public，以供 ASPX 頁面的 Data Binding 存取
+        public int CurrentPage
+        {
+            get
+            {
+                if (int.TryParse(Request.QueryString["page"], out int page))
+                {
+                    return page > 0 ? page - 1 : 0; // 轉換為 0-based index
+                }
+                return 0;
+            }
+        }
+
+        private int CurrentPageSize
+        {
+            get
+            {
+                if (int.TryParse(Request.QueryString["size"], out int size) && size > 0)
+                {
+                    return size;
+                }
+                return DefaultPageSize;
+            }
         }
 
         private bool IsChineseClassificationMode
         {
-            get { return (bool)(ViewState["IsChineseClassificationMode"] ?? true); }
-            set { ViewState["IsChineseClassificationMode"] = value; }
+            get
+            {
+                return (Request.QueryString["mode"] ?? "chinese") == "chinese";
+            }
         }
 
-        public int CurrentPage_Other
+        private string OtherSearchTerm
         {
-            get { return (int)(ViewState["CurrentPage_Other"] ?? 0); }
-            set { ViewState["CurrentPage_Other"] = value; }
+            get { return Request.QueryString["search"] ?? string.Empty; }
         }
 
-        private string SearchTerm_Other
-        {
-            get { return ViewState["SearchTerm_Other"] as string ?? string.Empty; }
-            set { ViewState["SearchTerm_Other"] = value; }
-        }
-
-        public int PageSize_Other_Setting
-        {
-            get { return (int)(ViewState["PageSize_Other_Setting"] ?? 12); }
-            set { ViewState["PageSize_Other_Setting"] = value; }
-        }
+        // --- 頁面事件 ---
 
         protected void Page_Load(object sender, EventArgs e)
         {
+            if (!User.Identity.IsAuthenticated)
+            {
+                Response.Redirect("~/Login.aspx");
+                return;
+            }
+
             if (!IsPostBack)
             {
-                if (!User.Identity.IsAuthenticated)
+                // 初始化類別列表的 PageSize DropDownList (僅用於 OtherCategories)
+                ListItem otherSizeItem = ddlPageSizeOther.Items.FindByValue(CurrentPageSize.ToString());
+                if (otherSizeItem != null)
                 {
-                    Response.Redirect("~/Login.aspx");
-                    return;
+                    ddlPageSizeOther.ClearSelection();
+                    otherSizeItem.Selected = true;
                 }
 
-                // 初始化 PageSize DropDownList
-                ddlPageSizeOther.SelectedValue = PageSize_Other_Setting.ToString();
+                // 初始化書籍列表的 Sort DropDownList
+                ListItem sortItem = ddlSortBy.Items.FindByValue(CurrentSort);
+                if (sortItem != null)
+                {
+                    ddlSortBy.ClearSelection();
+                    sortItem.Selected = true;
+                }
 
-                BindCategories();
-                pnlCategoryBooks.Visible = false;
+                // 初始化書籍列表的 PageSize DropDownList
+                ListItem bookSizeItem = ddlPageSizeBooks.Items.FindByValue(CurrentPageSize.ToString());
+                if (bookSizeItem != null)
+                {
+                    ddlPageSizeBooks.ClearSelection();
+                    bookSizeItem.Selected = true;
+                }
+
+
+                if (SelectedCategoryID > 0)
+                {
+                    BindCategoryBooks(SelectedCategoryID);
+                    pnlCategoriesContainer.Visible = false;
+                    pnlCategoryBooks.Visible = true;
+                }
+                else
+                {
+                    BindCategories();
+                    pnlCategoriesContainer.Visible = true;
+                    pnlCategoryBooks.Visible = false;
+                }
+
                 UpdateCategoryPanelsVisibility();
             }
-            else if (pnlOtherCategories.Visible)
-            {
-                txtSearchOther.Text = SearchTerm_Other;
-            }
         }
+
+        // --- 類別列表相關 ---
 
         private void UpdateCategoryPanelsVisibility()
         {
@@ -166,16 +221,13 @@ namespace aspnet
         private DataTable GetOtherCategoriesData(DataTable allCategories)
         {
             var tdcPrefixes = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-            string searchTerm = SearchTerm_Other;
+            string searchTerm = OtherSearchTerm;
 
             var filteredCategories = allCategories.AsEnumerable()
                 .Where(row =>
                 {
                     string catName = row.Field<string>("CategoryName");
-                    // 1. 判斷是否為中文圖書分類 (TDC)
                     bool isTDC = tdcPrefixes.Any(p => catName.StartsWith(p) && catName.Length >= 3 && Char.IsDigit(catName[1]) && Char.IsDigit(catName[2]) && catName.Contains(' '));
-
-                    // 2. 判斷是否符合搜尋詞
                     bool matchesSearch = string.IsNullOrEmpty(searchTerm) || catName.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase) >= 0;
 
                     return !isTDC && matchesSearch;
@@ -195,19 +247,14 @@ namespace aspnet
             PagedDataSource pds = new PagedDataSource();
             pds.DataSource = dtOtherCategories.DefaultView;
             pds.AllowPaging = true;
-            pds.PageSize = PageSize_Other_Setting;
-            pds.CurrentPageIndex = CurrentPage_Other;
+            pds.PageSize = CurrentPageSize;
+            pds.CurrentPageIndex = CurrentPage;
 
             rptOtherCategories.DataSource = pds;
             rptOtherCategories.DataBind();
 
-            // 設定 DropDownList 的選定值
-            ListItem selectedItem = ddlPageSizeOther.Items.FindByValue(PageSize_Other_Setting.ToString());
-            if (selectedItem != null)
-            {
-                ddlPageSizeOther.ClearSelection();
-                selectedItem.Selected = true;
-            }
+            // 確保搜尋框顯示當前搜尋詞
+            txtSearchOther.Text = OtherSearchTerm;
 
             BindOtherCategoriesPager(pds.PageCount);
         }
@@ -227,21 +274,19 @@ namespace aspnet
             rptPagerOther.DataBind();
         }
 
+        // --- 類別列表動作 ---
+
         protected void ddlPageSizeOther_SelectedIndexChanged(object sender, EventArgs e)
         {
             DropDownList ddl = (DropDownList)sender;
-            PageSize_Other_Setting = int.Parse(ddl.SelectedValue);
-            CurrentPage_Other = 0;
-            BindCategories();
-            UpdateCategoryPanelsVisibility();
+            int newSize = int.Parse(ddl.SelectedValue);
+            Response.Redirect(BuildUrl(0, newSize, OtherSearchTerm, IsChineseClassificationMode ? "chinese" : "other"));
         }
 
         protected void btnSearchOther_Click(object sender, EventArgs e)
         {
-            CurrentPage_Other = 0;
-            SearchTerm_Other = txtSearchOther.Text.Trim();
-            BindCategories();
-            UpdateCategoryPanelsVisibility();
+            string newSearchTerm = txtSearchOther.Text.Trim();
+            Response.Redirect(BuildUrl(0, CurrentPageSize, newSearchTerm, "other"));
         }
 
         protected void lnkPageOther_Click(object sender, EventArgs e)
@@ -249,20 +294,111 @@ namespace aspnet
             LinkButton lnk = (LinkButton)sender;
             int pageIndex = int.Parse(lnk.CommandArgument) - 1;
 
-            CurrentPage_Other = pageIndex;
-            BindCategories();
-            UpdateCategoryPanelsVisibility();
+            Response.Redirect(BuildUrl(pageIndex, CurrentPageSize, OtherSearchTerm, "other"));
         }
 
-        protected void rptChineseClassification_ItemCommand(object source, RepeaterCommandEventArgs e)
+        protected void btnToggleMode_Click(object sender, EventArgs e)
         {
-            rptCategories_ItemCommand(source, e);
+            string newMode = IsChineseClassificationMode ? "other" : "chinese";
+            Response.Redirect(BuildUrl(0, DefaultPageSize, string.Empty, newMode));
         }
 
-        protected void rptOtherCategories_ItemCommand(object source, RepeaterCommandEventArgs e)
+        // --- 書籍列表相關 ---
+
+        private void BindCategoryBooks(int categoryID)
         {
-            rptCategories_ItemCommand(source, e);
+            string categoryName = GetCategoryNameByID(categoryID);
+            lblSelectedCategoryName.Text = categoryName;
+
+            string connString = GetConnectionString();
+            // 注意：這裡假設 CurrentSort 的值已經被驗證過，以防 SQL 注入。
+            // 由於這是內部應用程序，我們信任使用者輸入來自 ddlSortBy。
+            string sql = $@"
+                SELECT b.BookID, b.Title, b.Author, b.ISBN 
+                FROM Books b
+                INNER JOIN CategoryRecords cr ON b.BookID = cr.BookID
+                WHERE cr.CategoryID = @CategoryID
+                ORDER BY {CurrentSort}";
+
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection(connString))
+                using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@CategoryID", categoryID);
+                    conn.Open();
+                    SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    // 處理分頁
+                    PagedDataSource pds = new PagedDataSource();
+                    pds.DataSource = dt.DefaultView;
+                    pds.AllowPaging = true;
+                    pds.PageSize = CurrentPageSize;
+                    pds.CurrentPageIndex = CurrentPage;
+
+                    rptCategoryBooks.DataSource = pds;
+                    rptCategoryBooks.DataBind();
+
+                    lblBookCount.Text = $"{dt.Rows.Count} 筆記錄";
+
+                    BindCategoryBooksPager(pds.PageCount);
+
+                    ShowMessage($"類別 '{categoryName}' 下共有 {dt.Rows.Count} 筆書籍記錄。", "success");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"載入類別書籍列表時發生錯誤：{ex.Message}", "error");
+                pnlCategoryBooks.Visible = false;
+            }
         }
+
+        private void BindCategoryBooksPager(int pageCount)
+        {
+            List<ListItem> pages = new List<ListItem>();
+            if (pageCount > 1)
+            {
+                for (int i = 0; i < pageCount; i++)
+                {
+                    pages.Add(new ListItem((i + 1).ToString(), (i + 1).ToString()));
+                }
+            }
+
+            rptPagerBooks.DataSource = pages;
+            rptPagerBooks.DataBind();
+        }
+
+        // --- 書籍列表動作 ---
+
+        protected void ddlSortBy_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DropDownList ddl = (DropDownList)sender;
+            string newSort = ddl.SelectedValue;
+            Response.Redirect(BuildBookListUrl(SelectedCategoryID, 0, newSort, CurrentPageSize));
+        }
+
+        protected void ddlPageSizeBooks_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DropDownList ddl = (DropDownList)sender;
+            int newSize = int.Parse(ddl.SelectedValue);
+            Response.Redirect(BuildBookListUrl(SelectedCategoryID, 0, CurrentSort, newSize));
+        }
+
+        protected void lnkPageBooks_Click(object sender, EventArgs e)
+        {
+            LinkButton lnk = (LinkButton)sender;
+            int pageIndex = int.Parse(lnk.CommandArgument) - 1;
+            Response.Redirect(BuildBookListUrl(SelectedCategoryID, pageIndex, CurrentSort, CurrentPageSize));
+        }
+
+        protected void btnBackToCategories_Click(object sender, EventArgs e)
+        {
+            Response.Redirect("~/catLookup.aspx"); // 返回主頁面，清除所有參數
+        }
+
+        // --- 共用功能 ---
 
         protected void rptCategories_ItemCommand(object source, RepeaterCommandEventArgs e)
         {
@@ -270,12 +406,8 @@ namespace aspnet
             {
                 if (int.TryParse(e.CommandArgument.ToString(), out int categoryID))
                 {
-                    string categoryName = GetCategoryNameByID(categoryID);
-
-                    SelectedCategoryID = categoryID;
-                    SelectedCategoryName = categoryName;
-
-                    BindCategoryBooks(categoryID);
+                    // 點選類別後，導航到包含 cid 參數的頁面，清除其他書籍列表狀態
+                    Response.Redirect(BuildBookListUrl(categoryID, 0, "Title", DefaultPageSize));
                 }
             }
         }
@@ -300,83 +432,37 @@ namespace aspnet
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ShowMessage($"獲取類別名稱時發生錯誤：{ex.Message}", "error");
+                categoryName = "載入錯誤";
             }
-
             return categoryName;
         }
 
-        private void BindCategoryBooks(int categoryID)
+        // 構建類別列表的 URL
+        private string BuildUrl(int pageIndex, int pageSize, string searchTerm, string mode)
         {
-            if (categoryID <= 0)
+            StringBuilder sb = new StringBuilder("~/catLookup.aspx?");
+            sb.Append($"mode={mode}");
+            sb.Append($"&page={pageIndex + 1}");
+            sb.Append($"&size={pageSize}");
+            if (!string.IsNullOrEmpty(searchTerm))
             {
-                pnlCategoryBooks.Visible = false;
-                ShowMessage("請先從上方選擇一個類別。", "info");
-                return;
+                sb.Append($"&search={Server.UrlEncode(searchTerm)}");
             }
-
-            string connString = GetConnectionString();
-            string sql = @"
-                SELECT b.BookID, b.Title, b.Author, b.ISBN 
-                FROM Books b
-                INNER JOIN CategoryRecords cr ON b.BookID = cr.BookID
-                WHERE cr.CategoryID = @CategoryID
-                ORDER BY b.Title";
-
-            try
-            {
-                using (SQLiteConnection conn = new SQLiteConnection(connString))
-                using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@CategoryID", categoryID);
-                    conn.Open();
-                    SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
-                    DataTable dt = new DataTable();
-                    da.Fill(dt);
-
-                    lblSelectedCategoryName.Text = SelectedCategoryName;
-                    rptCategoryBooks.DataSource = dt;
-                    rptCategoryBooks.DataBind();
-
-                    pnlCategoryBooks.Visible = true;
-                    pnlCategoriesContainer.Visible = false;
-
-                    ShowMessage($"類別 '{SelectedCategoryName}' 下共有 {dt.Rows.Count} 筆書籍記錄。", "success");
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowMessage($"載入類別書籍列表時發生錯誤：{ex.Message}", "error");
-                pnlCategoryBooks.Visible = false;
-            }
+            return sb.ToString();
         }
 
-        protected void btnBackToCategories_Click(object sender, EventArgs e)
+        // 構建書籍列表的 URL
+        private string BuildBookListUrl(int categoryID, int pageIndex, string sort, int pageSize)
         {
-            SelectedCategoryID = 0;
-            SelectedCategoryName = "所有類別";
-            pnlCategoryBooks.Visible = false;
-            pnlCategoriesContainer.Visible = true;
-            BindCategories();
-            UpdateCategoryPanelsVisibility();
-            ShowMessage("已返回類別列表。", "info");
-        }
-
-        protected void btnToggleMode_Click(object sender, EventArgs e)
-        {
-            IsChineseClassificationMode = !IsChineseClassificationMode;
-            UpdateCategoryPanelsVisibility();
-            ShowMessage(IsChineseClassificationMode ? "已切換至「中文圖書分類」模式。" : "已切換至「其他類別」模式。", "info");
-            BindCategories();
+            return $"/catLookup.aspx?cid={categoryID}&page={pageIndex + 1}&sort={Server.UrlEncode(sort)}&size={pageSize}";
         }
 
         private void ShowMessage(string message, string type)
         {
             lblMessage.Text = message;
             pnlMessage.Visible = true;
-
             pnlMessage.CssClass = "message-box";
 
             if (type == "error")

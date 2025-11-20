@@ -51,7 +51,22 @@
             align-items: center;
             margin-bottom: 20px;
         }
-
+        
+        .book-control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .book-control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
         .search-panel {
             display: flex;
             gap: 10px;
@@ -67,12 +82,16 @@
             font-size: 0.9em;
         }
 
-        .search-box {
-            flex-grow: 1;
-            padding: 10px;
+        .search-box, .sort-dropdown, .page-size-dropdown {
+            padding: 8px 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+
+        .search-box {
+            flex-grow: 1;
+        }
+
         .search-btn {
             background-color: #007bff;
             color: white;
@@ -84,11 +103,6 @@
         }
         .search-btn:hover {
             background-color: #0056b3;
-        }
-        .page-size-dropdown {
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
         }
         /* End New Control Panel Layout */
 
@@ -166,6 +180,14 @@
         }
         .book-info strong {
             color: #007bff;
+        }
+        .book-info a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .book-info a:hover {
+            text-decoration: underline;
         }
         .btn-back {
             background-color: #6c757d;
@@ -288,7 +310,7 @@
             
             <asp:Panel ID="pnlChineseClassification" runat="server" Visible="true">
                 <h2>中文圖書分類 (TDC)</h2>
-                <asp:Repeater ID="rptChineseClassification" runat="server" OnItemCommand="rptChineseClassification_ItemCommand">
+                <asp:Repeater ID="rptChineseClassification" runat="server" OnItemCommand="rptCategories_ItemCommand">
                     <ItemTemplate>
                         <div class="chinese-main-cat">
                             <h3><%# Eval("MainCategoryName") %></h3>
@@ -333,7 +355,7 @@
                         </asp:DropDownList>
                     </div>
                 </div>
-                <asp:Repeater ID="rptOtherCategories" runat="server" OnItemCommand="rptOtherCategories_ItemCommand">
+                <asp:Repeater ID="rptOtherCategories" runat="server" OnItemCommand="rptCategories_ItemCommand">
                     <HeaderTemplate>
                         <div class="category-grid">
                     </HeaderTemplate>
@@ -361,12 +383,13 @@
                                 CommandName="Page" 
                                 CommandArgument='<%# Eval("Value") %>' 
                                 OnClick="lnkPageOther_Click"
-                                CssClass='<%# (Convert.ToInt32(Eval("Value")) - 1) == CurrentPage_Other ? "page-link current-page" : "page-link" %>'
+                                CssClass='<%# (Convert.ToInt32(Eval("Value")) - 1) == CurrentPage ?
+"page-link current-page" : "page-link" %>'
                                 Text='<%# Eval("Text") %>' CausesValidation="False" />
                         </ItemTemplate>
                     </asp:Repeater>
                 </asp:Panel>
-                </asp:Panel>
+            </asp:Panel>
 
         </asp:Panel>
 
@@ -376,6 +399,29 @@
                 <asp:Button ID="btnBackToCategories" runat="server" Text="← 返回類別列表" OnClick="btnBackToCategories_Click" CssClass="btn-back" CausesValidation="False" />
             </div>
             
+            <div class="book-control-panel">
+                <asp:Label ID="lblBookCount" runat="server" ForeColor="#6c757d" />
+                <div class="book-control-group">
+                    <div class="page-size-panel">
+                        <label for="<%= ddlSortBy.ClientID %>">排序依據:</label>
+                        <asp:DropDownList ID="ddlSortBy" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlSortBy_SelectedIndexChanged" CssClass="sort-dropdown">
+                            <asp:ListItem Text="書名 (預設)" Value="Title" />
+                            <asp:ListItem Text="作者" Value="Author" />
+                            <asp:ListItem Text="ISBN" Value="ISBN" />
+                        </asp:DropDownList>
+                    </div>
+                    <div class="page-size-panel">
+                        <label for="<%= ddlPageSizeBooks.ClientID %>">每頁顯示:</label>
+                        <asp:DropDownList ID="ddlPageSizeBooks" runat="server" AutoPostBack="True" OnSelectedIndexChanged="ddlPageSizeBooks_SelectedIndexChanged" CssClass="page-size-dropdown">
+                            <asp:ListItem Text="12 筆" Value="12" />
+                            <asp:ListItem Text="24 筆" Value="24" />
+                            <asp:ListItem Text="48 筆" Value="48" />
+                            <asp:ListItem Text="所有" Value="9999" />
+                        </asp:DropDownList>
+                    </div>
+                </div>
+            </div>
+
             <asp:Repeater ID="rptCategoryBooks" runat="server">
                 <HeaderTemplate>
                     <ul>
@@ -383,8 +429,9 @@
                 <ItemTemplate>
                     <li>
                         <div class="book-info">
-                            <strong>書名: <%# Eval("Title") %></strong> (ID: <%# Eval("BookID") 
-                            %>) <br/>
+                            <a href='<%# "Search.aspx?bookid=" + Eval("BookID") %>'>
+                                <strong>書名: <%# Eval("Title") %></strong>
+                            </a> (ID: <%# Eval("BookID") %>) <br/>
                             作者: <%# Eval("Author") %>, ISBN: <%# Eval("ISBN") %>
                         </div>
                     </li>
@@ -393,6 +440,20 @@
                     </ul>
                 </FooterTemplate>
             </asp:Repeater>
+
+            <asp:Panel ID="pnlPaginationBooks" runat="server" CssClass="pagination-panel">
+                <asp:Repeater ID="rptPagerBooks" runat="server">
+                    <ItemTemplate>
+                        <asp:LinkButton ID="lnkPageBooks" runat="server" 
+                            CommandName="Page" 
+                            CommandArgument='<%# Eval("Value") %>' 
+                            OnClick="lnkPageBooks_Click"
+                            CssClass='<%# (Convert.ToInt32(Eval("Value")) - 1) == CurrentPage ?
+"page-link current-page" : "page-link" %>'
+                            Text='<%# Eval("Text") %>' CausesValidation="False" />
+                    </ItemTemplate>
+                </asp:Repeater>
+            </asp:Panel>
         </asp:Panel>
     </div>
 </asp:Content>
