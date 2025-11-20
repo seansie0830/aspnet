@@ -58,6 +58,15 @@ public partial class Search
     protected global::System.Web.UI.WebControls.Panel pnlAdvancedSearch;
 
     /// <summary>
+    /// txtBookID control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.TextBox txtBookID;
+
+    /// <summary>
     /// txtTitle control.
     /// </summary>
     /// <remarks>
@@ -94,13 +103,49 @@ public partial class Search
     protected global::System.Web.UI.WebControls.Label Label1;
 
     /// <summary>
-    /// ddlCategory control.
+    /// txtCategorySearch control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.DropDownList ddlCategory;
+    protected global::System.Web.UI.WebControls.TextBox txtCategorySearch;
+
+    /// <summary>
+    /// btnFilterCategories control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.Button btnFilterCategories;
+
+    /// <summary>
+    /// ddlAvailableCategories control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.DropDownList ddlAvailableCategories;
+
+    /// <summary>
+    /// Label2 control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.Label Label2;
+
+    /// <summary>
+    /// hidSelectedCategories control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.HiddenField hidSelectedCategories;
 
     /// <summary>
     /// btnAdvancedSearch control.
@@ -128,4 +173,13 @@ public partial class Search
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
     protected global::System.Web.UI.WebControls.GridView gvBooks;
+
+    /// <summary>
+    /// hidPanelVisible control.
+    /// </summary>
+    /// <remarks>
+    /// Auto-generated field.
+    /// To modify move field declaration from designer file to code-behind file.
+    /// </remarks>
+    protected global::System.Web.UI.WebControls.HiddenField hidPanelVisible;
 }

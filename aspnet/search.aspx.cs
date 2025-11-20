@@ -7,6 +7,8 @@ using System.Configuration;
 using System.Text;
 using System.Web.Security;
 using System.Collections.Generic;
+using System.Linq;
+using System.Web;
 
 public partial class Search : Page
 {
@@ -62,9 +64,175 @@ public partial class Search : Page
                 return;
             }
 
+            BindCategories(); // 綁定 ddlAvailableCategories
+            LoadSearchParameters();
             BindBookData();
-            BindCategories();
         }
+        else
+        {
+            pnlAdvancedSearch.Visible = hidPanelVisible.Value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    // 從 HiddenField 解析已選的類別 ID
+    private List<string> GetSelectedCategoryIDs()
+    {
+        string catData = hidSelectedCategories.Value;
+        if (string.IsNullOrWhiteSpace(catData))
+        {
+            return new List<string>();
+        }
+
+        // 格式: "ID1|Name1,ID2|Name2"
+        return catData.Split(',')
+                      .Select(item => item.Split('|')[0])
+                      .ToList();
+    }
+
+    // 從 URL 參數載入已選的類別 ID 和 Name，並設定 HiddenField
+    private void LoadCategoriesFromQueryString(string catQueryString)
+    {
+        if (string.IsNullOrWhiteSpace(catQueryString))
+        {
+            hidSelectedCategories.Value = string.Empty;
+            return;
+        }
+
+        // URL 格式: "ID1,ID2"
+        string[] selectedIDs = catQueryString.Split(',');
+
+        // 獲取所有類別名稱的字典 {ID: Name}
+        Dictionary<string, string> categoryMap = GetCategoryMap();
+
+        List<string> selectedCategoryPairs = new List<string>();
+
+        foreach (string id in selectedIDs)
+        {
+            if (categoryMap.ContainsKey(id))
+            {
+                // 儲存格式: "ID|Name"
+                selectedCategoryPairs.Add($"{id}|{categoryMap[id]}");
+            }
+        }
+
+        // 寫入 HiddenField: "ID1|Name1,ID2|Name2"
+        hidSelectedCategories.Value = string.Join(",", selectedCategoryPairs);
+    }
+
+    // 獲取 CategoryID 到 CategoryName 的映射
+    private Dictionary<string, string> GetCategoryMap()
+    {
+        Dictionary<string, string> map = new Dictionary<string, string>();
+        string connString = GetConnectionString();
+        string sql = "SELECT CategoryID, CategoryName FROM Categories";
+
+        using (SQLiteConnection conn = new SQLiteConnection(connString))
+        using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+        {
+            conn.Open();
+            using (SQLiteDataReader reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    map.Add(reader["CategoryID"].ToString(), reader["CategoryName"].ToString());
+                }
+            }
+        }
+        return map;
+    }
+
+    // 載入 URL 參數到控制項
+    private void LoadSearchParameters()
+    {
+        if (!string.IsNullOrEmpty(Request.QueryString["q"]))
+        {
+            txtQuickSearch.Text = Request.QueryString["q"];
+            hidPanelVisible.Value = "false";
+        }
+        else if (!string.IsNullOrWhiteSpace(Request.QueryString["bookid"]) ||
+                 !string.IsNullOrWhiteSpace(Request.QueryString["title"]) ||
+                 !string.IsNullOrWhiteSpace(Request.QueryString["author"]) ||
+                 !string.IsNullOrWhiteSpace(Request.QueryString["isbn"]) ||
+                 !string.IsNullOrWhiteSpace(Request.QueryString["cat"]))
+        {
+            txtBookID.Text = Request.QueryString["bookid"];
+            txtTitle.Text = Request.QueryString["title"];
+            txtAuthor.Text = Request.QueryString["author"];
+            txtISBN.Text = Request.QueryString["isbn"];
+
+            LoadCategoriesFromQueryString(Request.QueryString["cat"]);
+
+            pnlAdvancedSearch.Visible = true;
+            hidPanelVisible.Value = "true";
+        }
+
+        // 載入排序和分頁
+        if (!string.IsNullOrEmpty(Request.QueryString["sort"]))
+        {
+            SortExpression = Request.QueryString["sort"];
+        }
+        if (!string.IsNullOrEmpty(Request.QueryString["dir"]))
+        {
+            SortDirection = Request.QueryString["dir"];
+        }
+        if (!string.IsNullOrEmpty(Request.QueryString["size"]) && ddlPageSize.Items.FindByValue(Request.QueryString["size"]) != null)
+        {
+            CurrentPageSize = Convert.ToInt32(Request.QueryString["size"]);
+            gvBooks.PageSize = CurrentPageSize;
+            ddlPageSize.SelectedValue = CurrentPageSize.ToString();
+        }
+    }
+
+    // 儲存參數到 URL
+    private void SaveSearchParameters()
+    {
+        var parameters = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(txtQuickSearch.Text))
+        {
+            parameters.Add($"q={HttpUtility.UrlEncode(txtQuickSearch.Text.Trim())}");
+        }
+        else
+        {
+            var selectedCategories = GetSelectedCategoryIDs();
+
+            if (!string.IsNullOrWhiteSpace(txtBookID.Text))
+            {
+                parameters.Add($"bookid={HttpUtility.UrlEncode(txtBookID.Text.Trim())}");
+            }
+            if (!string.IsNullOrWhiteSpace(txtTitle.Text))
+            {
+                parameters.Add($"title={HttpUtility.UrlEncode(txtTitle.Text.Trim())}");
+            }
+            if (!string.IsNullOrWhiteSpace(txtAuthor.Text))
+            {
+                parameters.Add($"author={HttpUtility.UrlEncode(txtAuthor.Text.Trim())}");
+            }
+            if (!string.IsNullOrWhiteSpace(txtISBN.Text))
+            {
+                parameters.Add($"isbn={HttpUtility.UrlEncode(txtISBN.Text.Trim())}");
+            }
+
+            if (selectedCategories.Any())
+            {
+                // URL 儲存格式: "ID1,ID2"
+                parameters.Add($"cat={string.Join(",", selectedCategories)}");
+            }
+        }
+
+        // 排序和分頁
+        if (SortExpression != "BookID" || SortDirection != "ASC")
+        {
+            parameters.Add($"sort={SortExpression}");
+            parameters.Add($"dir={SortDirection}");
+        }
+        if (CurrentPageSize != 10)
+        {
+            parameters.Add($"size={CurrentPageSize}");
+        }
+
+        string queryString = parameters.Any() ? "?" + string.Join("&", parameters) : string.Empty;
+        Response.Redirect(Request.Path + queryString);
     }
 
     private int GetMaxBooksPerUser()
@@ -94,26 +262,44 @@ public partial class Search : Page
         }
     }
 
-    private void BindCategories()
+    // 綁定可用類別到 DropDownList
+    private void BindCategories(string searchKeyword = "")
     {
         DataTable dt = new DataTable();
         string connString = GetConnectionString();
-        string sql = "SELECT CategoryID, CategoryName FROM Categories ORDER BY CategoryName";
+        string sql = "SELECT CategoryID, CategoryName FROM Categories WHERE 1=1 ";
+
+        List<SQLiteParameter> parameters = new List<SQLiteParameter>();
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            sql += " AND CategoryName LIKE @Keyword ";
+            parameters.Add(new SQLiteParameter("@Keyword", $"%{searchKeyword.Trim()}%"));
+        }
+
+        sql += " ORDER BY CategoryName";
 
         using (SQLiteConnection conn = new SQLiteConnection(connString))
         using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
         {
+            cmd.Parameters.AddRange(parameters.ToArray());
             conn.Open();
             SQLiteDataAdapter da = new SQLiteDataAdapter(cmd);
             da.Fill(dt);
         }
 
-        ddlCategory.DataSource = dt;
-        ddlCategory.DataTextField = "CategoryName";
-        ddlCategory.DataValueField = "CategoryID";
-        ddlCategory.DataBind();
+        ddlAvailableCategories.DataSource = dt;
+        ddlAvailableCategories.DataTextField = "CategoryName";
+        ddlAvailableCategories.DataValueField = "CategoryID";
+        ddlAvailableCategories.DataBind();
+        ddlAvailableCategories.Items.Insert(0, new ListItem("-- 請選擇類別 --", "0"));
+    }
 
-        ddlCategory.Items.Insert(0, new ListItem("所有類別", "0"));
+    protected void btnFilterCategories_Click(object sender, EventArgs e)
+    {
+        BindCategories(txtCategorySearch.Text);
+        pnlAdvancedSearch.Visible = true;
+        hidPanelVisible.Value = "true";
     }
 
     private void BindBookData()
@@ -121,6 +307,14 @@ public partial class Search : Page
         DataTable dt = new DataTable();
         string connString = GetConnectionString();
         StringBuilder sqlBuilder = new StringBuilder();
+
+        bool isAdvancedSearchActive =
+            !string.IsNullOrWhiteSpace(txtBookID.Text) ||
+            !string.IsNullOrWhiteSpace(txtTitle.Text) ||
+            !string.IsNullOrWhiteSpace(txtAuthor.Text) ||
+            !string.IsNullOrWhiteSpace(txtISBN.Text) ||
+            GetSelectedCategoryIDs().Any();
+
         sqlBuilder.Append(@"
             SELECT 
                 B.BookID, 
@@ -138,17 +332,22 @@ public partial class Search : Page
 
         List<SQLiteParameter> parameters = new List<SQLiteParameter>();
 
-        // 1. 快速查詢條件
+        // 1. 快速查詢條件 (優先)
         if (!string.IsNullOrWhiteSpace(txtQuickSearch.Text))
         {
             string searchTerm = $"%{txtQuickSearch.Text.Trim()}%";
             sqlBuilder.Append(" AND (B.Title LIKE @SearchTerm OR B.Author LIKE @SearchTerm OR B.ISBN LIKE @SearchTerm)");
             parameters.Add(new SQLiteParameter("@SearchTerm", searchTerm));
         }
-
-        // 2. 進階查詢條件 - 只有當面板可見時才應用這些篩選器
-        if (pnlAdvancedSearch.Visible)
+        // 2. 進階查詢條件
+        else if (isAdvancedSearchActive)
         {
+            if (!string.IsNullOrWhiteSpace(txtBookID.Text))
+            {
+                // BookID 使用精確匹配
+                sqlBuilder.Append(" AND B.BookID = @BookID");
+                parameters.Add(new SQLiteParameter("@BookID", txtBookID.Text.Trim()));
+            }
             if (!string.IsNullOrWhiteSpace(txtTitle.Text))
             {
                 sqlBuilder.Append(" AND B.Title LIKE @Title");
@@ -164,16 +363,23 @@ public partial class Search : Page
                 sqlBuilder.Append(" AND B.ISBN LIKE @ISBN");
                 parameters.Add(new SQLiteParameter("@ISBN", $"%{txtISBN.Text.Trim()}%"));
             }
-            if (ddlCategory.SelectedValue != "0")
+
+            var selectedCategories = GetSelectedCategoryIDs();
+
+            if (selectedCategories.Any())
             {
-                sqlBuilder.Append(" AND C.CategoryID = @CategoryID");
-                parameters.Add(new SQLiteParameter("@CategoryID", ddlCategory.SelectedValue));
+                string categoryPlaceholders = string.Join(",", selectedCategories.Select((id, index) => $"@CategoryID{index}"));
+                sqlBuilder.Append($" AND C.CategoryID IN ({categoryPlaceholders})");
+
+                for (int i = 0; i < selectedCategories.Count; i++)
+                {
+                    parameters.Add(new SQLiteParameter($"@CategoryID{i}", selectedCategories[i]));
+                }
             }
         }
 
         sqlBuilder.Append(" GROUP BY B.BookID, B.Title, B.Author, B.ISBN, B.TotalCopies, B.AvailableCopies ");
 
-        // 修正 SQL 歧義錯誤：為排序欄位加上表格別名 B.
         string finalSortExpression = SortExpression;
         if (finalSortExpression.Equals("BookID", StringComparison.OrdinalIgnoreCase) ||
             finalSortExpression.Equals("Title", StringComparison.OrdinalIgnoreCase) ||
@@ -185,7 +391,6 @@ public partial class Search : Page
             finalSortExpression = "B." + finalSortExpression;
         }
 
-        // 排序
         sqlBuilder.Append($" ORDER BY {finalSortExpression} {SortDirection}");
 
         using (SQLiteConnection conn = new SQLiteConnection(connString))
@@ -199,30 +404,44 @@ public partial class Search : Page
 
         gvBooks.DataSource = dt;
         gvBooks.DataBind();
+
+        if (dt.Rows.Count == 0 && (!string.IsNullOrWhiteSpace(txtQuickSearch.Text) || isAdvancedSearchActive))
+        {
+            lblResultInfo.Text = "找不到符合條件的書籍。請嘗試其他關鍵字。";
+            lblResultInfo.CssClass += " message-error";
+        }
+        else
+        {
+            lblResultInfo.Text = "";
+            lblResultInfo.CssClass = "result-message";
+        }
     }
 
     protected void btnQuickSearch_Click(object sender, EventArgs e)
     {
-        // 快速搜尋：隱藏進階面板，並執行查詢
-        pnlAdvancedSearch.Visible = false;
-        BindBookData();
-        lblResultInfo.Text = "";
-        lblResultInfo.CssClass = "result-message";
+        // 快速搜尋：清除進階面板的欄位
+        txtBookID.Text = string.Empty;
+        txtTitle.Text = string.Empty;
+        txtAuthor.Text = string.Empty;
+        txtISBN.Text = string.Empty;
+        hidSelectedCategories.Value = string.Empty;
+
+        SaveSearchParameters();
     }
 
     protected void btnAdvancedSearch_Click(object sender, EventArgs e)
     {
-        // 進階搜尋：由於面板已經由 JavaScript 展開，我們只需要執行查詢即可
-        BindBookData();
-        lblResultInfo.Text = "";
-        lblResultInfo.CssClass = "result-message";
+        // 進階搜尋：清除快速搜尋欄位
+        txtQuickSearch.Text = string.Empty;
+
+        SaveSearchParameters();
     }
 
     protected void ddlPageSize_SelectedIndexChanged(object sender, EventArgs e)
     {
         CurrentPageSize = Convert.ToInt32(ddlPageSize.SelectedValue);
         gvBooks.PageSize = CurrentPageSize;
-        BindBookData();
+        SaveSearchParameters();
     }
 
     protected void gvBooks_PageIndexChanging(object sender, GridViewPageEventArgs e)
@@ -242,7 +461,8 @@ public partial class Search : Page
             SortExpression = e.SortExpression;
             SortDirection = "ASC";
         }
-        BindBookData();
+
+        SaveSearchParameters();
     }
 
     protected void gvBooks_RowCommand(object sender, GridViewCommandEventArgs e)
@@ -260,10 +480,9 @@ public partial class Search : Page
             }
 
             int bookID = Convert.ToInt32(e.CommandArgument);
-            int userID = GetUserIDByUserName(User.Identity.Name);
             string userName = User.Identity.Name;
+            int userID = GetUserIDByUserName(userName);
 
-            // 檢查借閱上限
             int maxBooks = GetMaxBooksPerUser();
             int currentCount = GetCurrentBorrowedCount(userName);
 
@@ -274,7 +493,6 @@ public partial class Search : Page
                 return;
             }
 
-            // 檢查書籍是否可借
             int availableCopies = GetAvailableCopies(bookID);
             if (availableCopies <= 0)
             {
@@ -283,7 +501,6 @@ public partial class Search : Page
                 return;
             }
 
-            // 執行借閱交易
             PerformBorrowTransaction(bookID, userID);
         }
     }
@@ -354,7 +571,7 @@ public partial class Search : Page
                     lblResultInfo.CssClass += " message-success";
                     BindBookData();
                 }
-                catch (SQLiteException ex) when (ex.Message.Contains("AvailableCopies cannot be less than 0"))
+                catch (SQLiteException ex) when (ex.Message.Contains("ABORT") || ex.Message.Contains("The book is currently out of stock or reserved."))
                 {
                     transaction.Rollback();
                     lblResultInfo.Text = "借閱失敗：該書籍目前無庫存可供借閱 (資料庫檢查)。";
