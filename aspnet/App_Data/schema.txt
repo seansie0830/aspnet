@@ -1,3 +1,4 @@
+sqlite> .schema
 CREATE TABLE Categories (
     CategoryID INTEGER PRIMARY KEY AUTOINCREMENT,
     CategoryName TEXT NOT NULL UNIQUE,
@@ -26,7 +27,7 @@ CREATE TABLE Users (
     Password TEXT NOT NULL,
     Email TEXT NOT NULL,
     IsAdmin INTEGER DEFAULT 0
-);
+, BorrowedBookCount INTEGER DEFAULT 0);
 CREATE TABLE LendRecords (
     LendRecordID INTEGER PRIMARY KEY AUTOINCREMENT, -- 使用 LendRecordID 作為主鍵
     BookID INTEGER NOT NULL,
@@ -87,3 +88,27 @@ WHEN NEW.AvailableCopies > NEW.TotalCopies
 BEGIN
     SELECT RAISE(ABORT, 'AvailableCopies cannot be greater than TotalCopies.');
 END;
+CREATE TRIGGER trg_Users_IncreaseBorrowedCount_OnInsert
+AFTER INSERT ON LendRecords
+WHEN NEW.ReturnDate IS NULL
+BEGIN
+    UPDATE Users
+    SET BorrowedBookCount = BorrowedBookCount + 1
+    WHERE UserID = NEW.UserID;
+END;
+CREATE TRIGGER trg_Users_DecreaseBorrowedCount_OnReturn
+AFTER UPDATE OF ReturnDate ON LendRecords
+WHEN OLD.ReturnDate IS NULL AND NEW.ReturnDate IS NOT NULL
+BEGIN
+    UPDATE Users
+    SET BorrowedBookCount = BorrowedBookCount - 1
+    WHERE UserID = NEW.UserID;
+END;
+CREATE TRIGGER trg_Users_DecreaseBorrowedCount_OnDelete
+AFTER DELETE ON LendRecords
+WHEN OLD.ReturnDate IS NULL
+BEGIN
+    UPDATE Users
+    SET BorrowedBookCount = BorrowedBookCount - 1
+    WHERE UserID = OLD.UserID;
+END

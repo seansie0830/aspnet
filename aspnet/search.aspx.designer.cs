@@ -13,13 +13,13 @@ public partial class Search
 {
 
     /// <summary>
-    /// lblQuickSearch control.
+    /// lblResultInfo control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblQuickSearch;
+    protected global::System.Web.UI.WebControls.Label lblResultInfo;
 
     /// <summary>
     /// txtQuickSearch control.
@@ -58,103 +58,58 @@ public partial class Search
     protected global::System.Web.UI.WebControls.Panel pnlAdvancedSearch;
 
     /// <summary>
-    /// lblTitle control.
+    /// txtTitle control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblTitle;
+    protected global::System.Web.UI.WebControls.TextBox txtTitle;
 
     /// <summary>
-    /// txtSearchTitle control.
+    /// txtAuthor control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.TextBox txtSearchTitle;
+    protected global::System.Web.UI.WebControls.TextBox txtAuthor;
 
     /// <summary>
-    /// lblAuthor control.
+    /// txtISBN control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblAuthor;
+    protected global::System.Web.UI.WebControls.TextBox txtISBN;
 
     /// <summary>
-    /// txtSearchAuthor control.
+    /// Label1 control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.TextBox txtSearchAuthor;
+    protected global::System.Web.UI.WebControls.Label Label1;
 
     /// <summary>
-    /// lblISBN control.
+    /// ddlCategory control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblISBN;
+    protected global::System.Web.UI.WebControls.DropDownList ddlCategory;
 
     /// <summary>
-    /// txtSearchISBN control.
+    /// btnAdvancedSearch control.
     /// </summary>
     /// <remarks>
     /// Auto-generated field.
     /// To modify move field declaration from designer file to code-behind file.
     /// </remarks>
-    protected global::System.Web.UI.WebControls.TextBox txtSearchISBN;
-
-    /// <summary>
-    /// lblAvailable control.
-    /// </summary>
-    /// <remarks>
-    /// Auto-generated field.
-    /// To modify move field declaration from designer file to code-behind file.
-    /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblAvailable;
-
-    /// <summary>
-    /// chkAvailableOnly control.
-    /// </summary>
-    /// <remarks>
-    /// Auto-generated field.
-    /// To modify move field declaration from designer file to code-behind file.
-    /// </remarks>
-    protected global::System.Web.UI.WebControls.CheckBox chkAvailableOnly;
-
-    /// <summary>
-    /// btnSearch control.
-    /// </summary>
-    /// <remarks>
-    /// Auto-generated field.
-    /// To modify move field declaration from designer file to code-behind file.
-    /// </remarks>
-    protected global::System.Web.UI.WebControls.Button btnSearch;
-
-    /// <summary>
-    /// lblResultInfo control.
-    /// </summary>
-    /// <remarks>
-    /// Auto-generated field.
-    /// To modify move field declaration from designer file to code-behind file.
-    /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblResultInfo;
-
-    /// <summary>
-    /// lblPageSize control.
-    /// </summary>
-    /// <remarks>
-    /// Auto-generated field.
-    /// To modify move field declaration from designer file to code-behind file.
-    /// </remarks>
-    protected global::System.Web.UI.WebControls.Label lblPageSize;
+    protected global::System.Web.UI.WebControls.Button btnAdvancedSearch;
 
     /// <summary>
     /// ddlPageSize control.

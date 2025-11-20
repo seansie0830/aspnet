@@ -4,11 +4,14 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Data.SQLite;
 using System.Configuration;
+using System.Collections.Generic;
 
 namespace aspnet
 {
     public partial class MyHomepage : Page
     {
+        private const string AppConfigKey = "ApplicationConfig";
+
         private string GetConnectionString()
         {
             return ConfigurationManager.ConnectionStrings["LibraryDBConnection"].ConnectionString;
@@ -19,26 +22,70 @@ namespace aspnet
             if (!User.Identity.IsAuthenticated)
             {
                 Response.Redirect("~/Login.aspx");
-                return; // 確保在重定向後停止執行
+                return;
             }
 
             if (!IsPostBack)
             {
                 string userName = User.Identity.Name;
 
-                // **STEP 1: 檢查是否為管理員並跳轉**
                 if (IsUserAdmin(userName))
                 {
-                    // 如果 isAdmin 是 1，則跳轉到 /adminPage
                     Response.Redirect("~/admins/main.aspx");
-                    return; // 確保在重定向後停止執行
+                    return;
                 }
-                // **STEP 1 結束**
 
                 lblUserInfo.Text = $"歡迎您，{userName}！您目前的借閱狀態如下：";
 
+                UpdateBorrowStatus(userName);
                 BindLendRecords(userName);
             }
+        }
+
+        private int GetMaxBooksPerUser()
+        {
+            var config = Application[AppConfigKey] as Dictionary<string, string>;
+
+            if (config != null && config.ContainsKey("MaxBooksPerUser") && int.TryParse(config["MaxBooksPerUser"], out int maxBooks))
+            {
+                return maxBooks;
+            }
+
+            // 預設值，應與 config.aspx.cs 中的預設值一致
+            return 5;
+        }
+
+        private int GetCurrentBorrowedCount(string userName)
+        {
+            string connString = GetConnectionString();
+            // 讀取 Users 表格中的 BorrowedBookCount 欄位
+            string sql = "SELECT BorrowedBookCount FROM Users WHERE UserName = @UserName";
+
+            using (SQLiteConnection conn = new SQLiteConnection(connString))
+            using (SQLiteCommand cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@UserName", userName);
+                conn.Open();
+                object result = cmd.ExecuteScalar();
+                // 檢查結果是否為 DBNull 或 null，並確認是否為非負整數
+                return (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
+            }
+        }
+
+        private void UpdateBorrowStatus(string userName)
+        {
+            int maxBooks = GetMaxBooksPerUser();
+            int currentCount = GetCurrentBorrowedCount(userName);
+            int availableToBorrow = Math.Max(0, maxBooks - currentCount);
+
+            string statusText = $"您目前借閱：<span style='color:#007bff;'>{currentCount}</span> 本 / 上限 <span style='color:#007bff;'>{maxBooks}</span> 本 (還可借 <span style='color:#28a745;'>{availableToBorrow}</span> 本)";
+
+            if (currentCount >= maxBooks)
+            {
+                statusText += "<br /><span class='borrow-limit-message'>您已達到借書上限，請先歸還書籍。</span>";
+            }
+
+            lblBorrowStatus.Text = statusText;
         }
 
         private int GetUserIDByUserName(string userName)
@@ -143,6 +190,7 @@ namespace aspnet
                 {
                     lblReturnMessage.Text = "書籍歸還成功！";
                     string userName = User.Identity.Name;
+                    UpdateBorrowStatus(userName);
                     BindLendRecords(userName);
                 }
                 else
@@ -157,8 +205,6 @@ namespace aspnet
             string connString = GetConnectionString();
 
             string updateLendSql = "UPDATE LendRecords SET ReturnDate = @ReturnDate WHERE LendRecordID = @LendRecordID AND ReturnDate IS NULL";
-            //string updateBookSql = "UPDATE Books SET AvailableCopies = AvailableCopies + 1 WHERE BookID = @BookID";
-            // use trigger instead for data integrity
 
             using (SQLiteConnection conn = new SQLiteConnection(connString))
             {
@@ -177,17 +223,6 @@ namespace aspnet
                                 return false;
                             }
                         }
-                        /*
-                        using (SQLiteCommand cmdBook = new SQLiteCommand(updateBookSql, conn, transaction))
-                        {
-                            cmdBook.Parameters.AddWithValue("@BookID", bookID);
-                            if (cmdBook.ExecuteNonQuery() == 0)
-                            {
-                                transaction.Rollback();
-                                return false;
-                            }
-                        }
-                        */
 
                         transaction.Commit();
                         return true;
@@ -203,7 +238,6 @@ namespace aspnet
         private bool IsUserAdmin(string userName)
         {
             string connString = GetConnectionString();
-            // 查詢 isAdmin 欄位
             string sql = "SELECT isAdmin FROM Users WHERE UserName = @UserName";
 
             using (SQLiteConnection conn = new SQLiteConnection(connString))
@@ -213,16 +247,12 @@ namespace aspnet
                 conn.Open();
                 object result = cmd.ExecuteScalar();
 
-                // 檢查結果是否為 DBNull 或 null，並確認是否為 1
                 if (result != null && result != DBNull.Value)
                 {
-                    // 假設 isAdmin 儲存為 INTEGER，1 表示是管理員
                     return Convert.ToInt32(result) == 1;
                 }
                 return false;
             }
         }
     }
-
-
 }
