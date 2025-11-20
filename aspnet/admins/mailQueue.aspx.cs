@@ -7,6 +7,8 @@ using System.Data.SQLite;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail; // 引入 System.Net.Mail 命名空間
+using System.Diagnostics; // 引入 Debug.WriteLine
 
 namespace aspnet
 {
@@ -73,27 +75,23 @@ namespace aspnet
                                 FROM LendRecords L
                                 JOIN Books B ON L.BookID = B.BookID
                                 JOIN Users U ON L.UserID = U.UserID
-                                WHERE L.ReturnDate IS NULL"; // 僅限未歸還的記錄
+                                WHERE L.ReturnDate IS NULL";
 
             string filter = ddlOverdueDays.SelectedValue;
             string whereClause = string.Empty;
 
             if (filter == "Overdue")
             {
-                // 已逾期：ReturnDate IS NULL AND DueDate < 今天
                 whereClause = " AND L.DueDate < DATE('now')";
             }
             else if (filter == "DueIn7")
             {
-                // 7 天內到期：ReturnDate IS NULL AND DueDate <= 今天 + 7天 AND DueDate >= 今天
                 whereClause = " AND L.DueDate <= DATE('now', '+7 day') AND L.DueDate >= DATE('now')";
             }
             else if (filter == "DueToday")
             {
-                // 今天到期：ReturnDate IS NULL AND DueDate = 今天
                 whereClause = " AND L.DueDate = DATE('now')";
             }
-            // AllInHand: 不增加 whereClause (預設就是 L.ReturnDate IS NULL)
 
             string orderByClause = " ORDER BY L.DueDate ASC, L.LendRecordID ASC";
 
@@ -145,19 +143,15 @@ namespace aspnet
 
                     if (diff.TotalDays < 0)
                     {
-                        // 已逾期
                         lblStatus.Text = $"已逾期 {Math.Abs(diff.TotalDays)} 天";
                         e.Row.CssClass += " overdue-row";
                     }
                     else if (diff.TotalDays == 0)
                     {
-                        // 今天到期
                         lblStatus.Text = "今天到期";
-                        // 可以添加一個專門的樣式，但此處沿用基礎樣式
                     }
                     else if (diff.TotalDays <= 7)
                     {
-                        // 7 天內到期
                         lblStatus.Text = $"剩餘 {diff.TotalDays} 天到期";
                     }
                     else
@@ -175,6 +169,7 @@ namespace aspnet
         protected void btnSendOverdueReminders_Click(object sender, EventArgs e)
         {
             int sentCount = 0;
+            int failureCount = 0;
             StringBuilder log = new StringBuilder();
 
             foreach (GridViewRow row in gvOverdueReminders.Rows)
@@ -185,13 +180,12 @@ namespace aspnet
                     if (chkSelect != null && chkSelect.Checked)
                     {
                         int lendRecordID = Convert.ToInt32(gvOverdueReminders.DataKeys[row.RowIndex].Value);
-                        string username = row.Cells[2].Text; // 假設 Username 在第 3 欄
-                        string email = row.Cells[3].Text;    // 假設 Email 在第 4 欄
-                        string bookTitle = row.Cells[4].Text; // 假設 BookTitle 在第 5 欄
-                        string dueDate = row.Cells[6].Text; // 假設 DueDate 在第 7 欄
+                        string username = row.Cells[2].Text;
+                        string email = row.Cells[3].Text;
+                        string bookTitle = row.Cells[4].Text;
+                        string dueDate = row.Cells[6].Text;
 
-                        // TODO: 實際的郵件發送邏輯，目前僅為模擬
-                        bool success = SimulateSendEmail(username, email, bookTitle, dueDate);
+                        bool success = SendOverdueReminderEmail(username, email, bookTitle, dueDate);
 
                         if (success)
                         {
@@ -200,6 +194,7 @@ namespace aspnet
                         }
                         else
                         {
+                            failureCount++;
                             log.AppendLine($"失敗：[ID:{lendRecordID}] 無法寄送提醒給 {username}。");
                         }
                     }
@@ -208,28 +203,93 @@ namespace aspnet
 
             if (sentCount > 0)
             {
-                ShowMessage($"成功寄送 {sentCount} 筆提醒郵件。", "success");
+                string message = $"成功寄送 {sentCount} 筆提醒郵件。";
+                if (failureCount > 0) message += $" (失敗 {failureCount} 筆)";
+                ShowMessage(message, "success");
             }
             else
             {
                 ShowMessage("沒有選取任何記錄，或寄送失敗。", "error");
             }
 
-            // 重新綁定以清空選取
             BindOverdueRemindersData();
         }
 
-        private bool SimulateSendEmail(string username, string email, string bookTitle, string dueDate)
+        private bool SendOverdueReminderEmail(string username, string email, string bookTitle, string dueDate)
         {
-            // 在實際應用中，此處應呼叫 SmtpClient 或其他郵件服務
-            // 檢查 email 格式是否有效，以及是否為測試環境
-            if (string.IsNullOrEmpty(email) || !email.Contains("@"))
+            string smtpHost = ConfigurationManager.AppSettings["SmtpHost"];
+            int smtpPort;
+            if (!int.TryParse(ConfigurationManager.AppSettings["SmtpPort"], out smtpPort)) smtpPort = 587;
+            string smtpUser = ConfigurationManager.AppSettings["SmtpUser"];
+            string fromEmail = ConfigurationManager.AppSettings["FromEmail"];
+            bool enableSsl;
+            if (!bool.TryParse(ConfigurationManager.AppSettings["SmtpEnableSsl"], out enableSsl)) enableSsl = true;
+
+            string smtpPassword = Environment.GetEnvironmentVariable("SMTP_APP_PASSWORD");
+
+            if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(smtpPassword))
             {
+                Debug.WriteLine($"郵件發送錯誤: 必要的 SMTP 設定遺失或為空。");
+                Debug.WriteLine($" Host:{smtpHost}, User:{smtpUser}, From:{fromEmail}, Password:{!string.IsNullOrEmpty(smtpPassword)}");
                 return false;
             }
 
-            // 模擬成功
-            return true;
+            Debug.WriteLine($"--- 逾期提醒郵件發送 ---");
+            Debug.WriteLine($"收件人: {email} ({username})");
+            Debug.WriteLine($"書籍: {bookTitle}");
+            Debug.WriteLine($"應還日: {dueDate}");
+            Debug.WriteLine($"SMTP Host: {smtpHost}:{smtpPort}, SSL: {enableSsl}");
+            Debug.WriteLine($"寄件人: {fromEmail}, 帳號: {smtpUser}");
+            Debug.WriteLine($"-----------------------");
+
+            try
+            {
+                using (MailMessage mail = new MailMessage())
+                {
+                    mail.From = new MailAddress(fromEmail, "圖書館管理系統 - 借閱提醒");
+                    mail.To.Add(email);
+                    mail.Subject = $"圖書借閱提醒：您借閱的《{bookTitle}》即將/已到期";
+                    mail.Body = $@"
+                        <p>親愛的 {username}，您好：</p>
+                        <p>這封信是提醒您，您所借閱的圖書即將或已超過歸還日期：</p>
+                        <ul>
+                            <li><strong>書籍名稱</strong>：《{bookTitle}》</li>
+                            <li><strong>應還日期</strong>：{dueDate}</li>
+                        </ul>
+                        <p>為避免影響您的借閱權益或產生逾期罰款，請您儘快至圖書館歸還。</p>
+                        <p>此致，</p>
+                        <p>圖書館管理系統</p>
+                    ";
+                    mail.IsBodyHtml = true;
+
+                    using (SmtpClient smtp = new SmtpClient(smtpHost, smtpPort))
+                    {
+                        smtp.EnableSsl = enableSsl;
+                        smtp.UseDefaultCredentials = false;
+                        smtp.Credentials = new System.Net.NetworkCredential(smtpUser, smtpPassword);
+                        smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+
+                        smtp.Send(mail);
+                    }
+                }
+
+                Debug.WriteLine($"郵件已成功發送至 {email}");
+                return true;
+            }
+            catch (SmtpException ex)
+            {
+                Debug.WriteLine($"郵件發送失敗 (SMTP 錯誤): {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Debug.WriteLine($"內部錯誤: {ex.InnerException.Message}");
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"郵件發送發生未知錯誤: {ex.Message}");
+                return false;
+            }
         }
 
         protected void btnRefreshReminders_Click(object sender, EventArgs e)

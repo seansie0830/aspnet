@@ -30,122 +30,128 @@
             display: flex;
             gap: 15px;
         }
-
         .admin-nav a {
             text-decoration: none;
             color: #007bff;
-            padding: 5px 10px;
-            border-radius: 3px;
-            transition: background-color 0.3s;
             font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
         }
-
         .admin-nav a:hover {
             background-color: #e2e6ea;
-            color: #0056b3;
         }
-
         .admin-nav .active {
-            background-color: #dc3545;
+            background-color: #007bff;
             color: white;
-            pointer-events: none;
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 25px;
-            margin-top: 30px;
         }
 
         .dashboard-card {
             background-color: #ffffff;
-            padding: 25px;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            text-align: center;
+            padding: 25px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s, box-shadow 0.3s;
-            border-left: 5px solid #007bff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
-
         .dashboard-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
 
         .dashboard-card h3 {
             margin-top: 0;
-            color: #343a40;
-            font-size: 20px;
-            border-bottom: 1px dashed #ced4da;
+            color: #333;
+            font-size: 1.5em;
+            border-bottom: 2px solid;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
 
         .dashboard-card p {
-            font-size: 14px;
-            color: #6c757d;
+            color: #666;
+            flex-grow: 1;
+            margin-bottom: 20px;
         }
 
         .dashboard-card a {
             display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007bff;
+            background-color: #dc3545;
             color: white;
             text-decoration: none;
+            padding: 10px 15px;
             border-radius: 5px;
             font-weight: bold;
+            text-align: center;
             transition: background-color 0.3s;
         }
+        .dashboard-card a:hover {
+            background-color: #c82333;
+        }
 
-        .card-users { border-left-color: #28a745; }
-        .card-books { border-left-color: #ffc107; }
-        .card-category { border-left-color: #17a2b8; }
-        .card-records { border-left-color: #6f42c1; }
-        .card-boot-category { border-left-color: #dc3545; }
-        .card-config { border-left-color: #000000; } /* 新增黑色邊框樣式 */
+        /* 顏色主題 */
+        .card-users h3 { border-color: #007bff; }
+        .card-users a { background-color: #007bff; }
+        .card-users a:hover { background-color: #0056b3; }
+
+        .card-books h3 { border-color: #28a745; }
+        .card-books a { background-color: #28a745; }
+        .card-books a:hover { background-color: #1e7e34; }
+
+        .card-category h3 { border-color: #ffc107; }
+        .card-category a { background-color: #ffc107; color: #212529; }
+        .card-category a:hover { background-color: #e0a800; }
+
+        .card-records h3 { border-color: #17a2b8; }
+        .card-records a { background-color: #17a2b8; }
+        .card-records a:hover { background-color: #117a8b; }
         
-        .card-users a { background-color: #28a745; }
-        .card-books a { background-color: #ffc107; color: #212529; }
-        .card-category a { background-color: #17a2b8; }
-        .card-records a { background-color: #6f42c1; }
-        .card-boot-category a { background-color: #dc3545; }
-        .card-config a { background-color: #000000; } /* 新增黑色按鈕樣式 */
+        .card-mail h3 { border-color: #6f42c1; }
+        .card-mail a { background-color: #6f42c1; }
+        .card-mail a:hover { background-color: #5a34a0; }
 
+        .card-boot-category h3 { border-color: #fd7e14; }
+        .card-boot-category a { background-color: #fd7e14; }
+        .card-boot-category a:hover { background-color: #d8680c; }
+
+
+        /* 訊息區塊樣式 */
         .message-box {
             padding: 15px;
+            border-radius: 6px;
             margin-bottom: 20px;
-            border-radius: 4px;
             border: 1px solid transparent;
         }
-
-        .message-box-info {
-            color: #0c5460;
-            background-color: #d1ecf1;
-            border-color: #bee5eb;
-        }
-
         .message-box-error {
-            color: #721c24;
             background-color: #f8d7da;
             border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .message-box-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .message-box-info {
+            background-color: #cce5ff;
+            border-color: #b8daff;
+            color: #004085;
         }
     </style>
 </asp:Content>
 
 <asp:Content ID="BodyContent" ContentPlaceHolderID="MainContent" runat="server">
     <div class="admin-container">
-        <h2 class="page-header">管理員儀表板 (Admin Dashboard)</h2>
-
-        <div class="admin-nav">
-            <a href="/admins/Main.aspx" class="active">儀表板</a>
-            <a href="/admins/Users.aspx">用戶管理</a>
-            <a href="/admins/Books.aspx">書籍管理</a>
-            <a href="/admins/category.aspx">類別管理</a>
-            <a href="/admins/LendRecord.aspx">借閱記錄</a>
-            <a href="/admins/config.aspx">系統設定</a>
-        </div>
+        <h1 class="page-header">管理員儀表板 (Administrator Dashboard)</h1>
         
         <asp:Panel ID="pnlMessage" runat="server" Visible="false" CssClass="message-box message-box-info">
             <asp:Label ID="lblMessage" runat="server"></asp:Label>
@@ -168,7 +174,7 @@
             <div class="dashboard-card card-category">
                 <h3>類別管理</h3>
                 <p>定義書籍分類，方便組織和搜尋。</p>
-                <a href="/admins/category.aspx">進入管理頁面</a>
+                <a href="/admins/Categories.aspx">進入管理頁面</a>
             </div>
 
             <div class="dashboard-card card-records">
@@ -177,19 +183,18 @@
                 <a href="/admins/LendRecord.aspx">進入管理頁面</a>
             </div>
 
+            <div class="dashboard-card card-mail">
+                <h3>郵件佇列</h3>
+                <p>管理逾期提醒、密碼重設等自動寄送的郵件。</p>
+                <a href="/admins/mailQueue.aspx">進入管理頁面</a>
+            </div>
+
             <div class="dashboard-card card-boot-category">
                 <h3>書籍類別管理</h3>
                 <p>查詢、追蹤和設定書籍所屬的類別。</p>
                 <a href="/admins/BookCategory.aspx">進入管理頁面</a>
             </div>
-            
-            <div class="dashboard-card card-config">
-                <h3>系統設定</h3>
-                <p>設定全域借閱規則，如借書上限和期限。</p>
-                <a href="/admins/config.aspx">進入管理頁面</a>
-            </div>
 
         </div>
-
     </div>
 </asp:Content>
