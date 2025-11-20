@@ -108,6 +108,7 @@
     <Content Include="admins\BookCategory.aspx" />
     <Content Include="admins\books.aspx" />
     <Content Include="admins\category.aspx" />
+    <Content Include="admins\config.aspx" />
     <Content Include="admins\lendRecord.aspx" />
     <Content Include="admins\mailQueue.aspx" />
     <Content Include="admins\main.aspx" />
@@ -324,6 +325,13 @@
     </Compile>
     <Compile Include="admins\category.aspx.designer.cs">
       <DependentUpon>category.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="admins\config.aspx.cs">
+      <DependentUpon>config.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="admins\config.aspx.designer.cs">
+      <DependentUpon>config.aspx</DependentUpon>
     </Compile>
     <Compile Include="admins\lendRecord.aspx.cs">
       <DependentUpon>lendRecord.aspx</DependentUpon>
